@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-cream-50: #fbf9f4;
+  --color-cream-100: #f5f1e8;
+  --color-cream-200: #ebe4d5;
+
+  --color-ink-500: #6b6455;
+  --color-ink-600: #4d4738;
+  --color-ink-700: #37332a;
+  --color-ink-800: #262319;
+  --color-ink-900: #1a180f;
+
+  --color-sage-100: #dcebe3;
+  --color-sage-300: #93c5ab;
+  --color-sage-500: #4c9a70;
+  --color-sage-600: #3d7f5b;
+  --color-sage-700: #2f6346;
+
+  --color-clay-100: #fbe9dd;
+  --color-clay-300: #eeb593;
+  --color-clay-500: #d97a44;
+  --color-clay-600: #b95f2f;
+  --color-clay-700: #94491f;
+
+  --color-honey-100: #fdf3d7;
+  --color-honey-300: #f3d488;
+  --color-honey-500: #e0a92e;
+  --color-honey-600: #b9861c;
+
+  --color-sky-soft-100: #dcedf2;
+  --color-sky-soft-300: #93c2d3;
+  --color-sky-soft-500: #4a91ad;
+  --color-sky-soft-600: #3a748b;
+
+  --color-rose-soft-100: #f9e3e7;
+  --color-rose-soft-300: #e8a4b3;
+  --color-rose-soft-500: #c65d76;
+  --color-rose-soft-600: #a6465d;
+}
+
+body {
+  @apply bg-cream-50 text-ink-800 font-sans antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.35s ease-out both;
+}
+
+.animate-pop-in {
+  animation: pop-in 0.2s ease-out both;
+}
