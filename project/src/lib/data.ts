@@ -23,6 +23,7 @@ import type {
   BudgetItem,
 } from "./types";
 import { todayISO } from "./utils";
+import { getStoredValue, setStoredValue } from "./storage";
 
 type Row = Record<string, unknown>;
 
@@ -33,7 +34,10 @@ const cacheKey = (table: string) => `lifehub:cache:${table}`;
 
 function readLocal(table: string): Row[] {
   try {
-    return JSON.parse(localStorage.getItem(cacheKey(table)) || "[]") as Row[];
+    const parsed: unknown = JSON.parse(getStoredValue(cacheKey(table)) ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((row): row is Row => typeof row === "object" && row !== null && !Array.isArray(row))
+      : [];
   } catch {
     return [];
   }
@@ -41,7 +45,7 @@ function readLocal(table: string): Row[] {
 
 function writeLocal(table: string, rows: Row[]): void {
   try {
-    localStorage.setItem(cacheKey(table), JSON.stringify(rows));
+    setStoredValue(cacheKey(table), JSON.stringify(rows));
   } catch {
     // storage full or unavailable - cloud remains the source of truth
   }
@@ -57,7 +61,21 @@ interface SyncItem {
 
 function readQueue(): SyncItem[] {
   try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]") as SyncItem[];
+    const parsed: unknown = JSON.parse(getStoredValue(QUEUE_KEY) ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (item): item is SyncItem =>
+            typeof item === "object" &&
+            item !== null &&
+            "table" in item &&
+            typeof item.table === "string" &&
+            "kind" in item &&
+            (item.kind === "insert" || item.kind === "update" || item.kind === "delete") &&
+            "row" in item &&
+            typeof item.row === "object" &&
+            item.row !== null
+        )
+      : [];
   } catch {
     return [];
   }
@@ -65,7 +83,7 @@ function readQueue(): SyncItem[] {
 
 function writeQueue(items: SyncItem[]): void {
   try {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
+    setStoredValue(QUEUE_KEY, JSON.stringify(items));
   } catch {
     // nothing we can do, keep the in-memory state consistent
   }
@@ -105,6 +123,23 @@ async function runRemote(item: SyncItem): Promise<void> {
 function looksOffline(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
   return (typeof navigator !== "undefined" && !navigator.onLine) || /fetch|network|load failed|timed? ?out|failed to fetch/i.test(msg);
+}
+
+export async function checkBackendConnectivity(): Promise<boolean> {
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!navigator.onLine || !url || !anonKey) return false;
+
+  try {
+    const response = await fetch(`${url}/auth/v1/health`, {
+      headers: { apikey: anonKey },
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 async function remoteOrQueue(item: Omit<SyncItem, "ts">): Promise<void> {
@@ -897,6 +932,7 @@ export async function listBudgetItems(): Promise<BudgetItem[]> {
 export async function addBudgetItem(entry: {
   id?: string;
   kind: "income" | "expense";
+  planned?: boolean;
   amount: number;
   category: string;
   note: string;
@@ -908,11 +944,21 @@ export async function addBudgetItem(entry: {
     row: {
       id: entry.id ?? uid(),
       kind: entry.kind,
+      planned: entry.planned ?? false,
       amount: Math.max(0, Math.round(entry.amount)),
       category: entry.category,
       note: entry.note,
       item_date: entry.item_date,
     },
+  });
+}
+
+export async function markBudgetItemBought(id: string): Promise<void> {
+  await remoteOrQueue({
+    table: "budget_items",
+    kind: "update",
+    row: { id },
+    changes: { planned: false, item_date: todayISO() },
   });
 }
 

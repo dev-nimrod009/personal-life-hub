@@ -49,13 +49,14 @@ export function JournalPage() {
     setSaving(true);
     try {
       await upsertJournal(editing ? { id: editing.id, ...form } : form);
-      setError("");
+      await load();
+      setEditing(null);
+      setForm({ title: "", content: "", mood: "" });
+      setOpen(false);
     } catch {
       setError("Could not save the entry.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      load();
     }
   };
 
@@ -123,7 +124,7 @@ export function JournalPage() {
                     {entry.title || "Untitled"}
                   </h4>
                   <p className="text-xs text-ink-500 mt-0.5">
-                    {formatDay(entry.created_at.slice(0, 10))}
+                    {formatDay((entry.created_at || new Date().toISOString()).slice(0, 10))}
                     {entry.mood && <span className="ml-2 text-sage-600 font-medium">{entry.mood}</span>}
                   </p>
                 </div>

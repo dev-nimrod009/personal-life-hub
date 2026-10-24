@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { checkBackendConnectivity } from "./data";
+import { getStoredValue, removeStoredValue, setStoredValue } from "./storage";
 
 interface AuthState {
   session: Session | null;
@@ -29,7 +31,7 @@ const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
 function readOfflineUser(): Pick<User, "id" | "email"> | null {
   try {
-    const cached: unknown = JSON.parse(localStorage.getItem(OFFLINE_USER_KEY) ?? "null");
+    const cached: unknown = JSON.parse(getStoredValue(OFFLINE_USER_KEY) ?? "null");
     if (
       typeof cached === "object" &&
       cached !== null &&
@@ -60,33 +62,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [offlineAccess, setOfflineAccess] = useState(false);
   const lastActivityRef = useRef(0);
-  const [hasPasskey, setHasPasskey] = useState(() => localStorage.getItem(PASSKEY_FLAG) === "1");
-  const [hasLocalPin, setHasLocalPin] = useState(() => localStorage.getItem(PIN_KEY) !== null);
+  const [hasPasskey, setHasPasskey] = useState(() => getStoredValue(PASSKEY_FLAG) === "1");
+  const [hasLocalPin, setHasLocalPin] = useState(() => getStoredValue(PIN_KEY) !== null);
 
   useEffect(() => {
-    const restoreOfflineAccess = () => {
+    const restoreOfflineAccess = async () => {
       const cachedUser = readOfflineUser();
-      if (!cachedUser || navigator.onLine) return false;
+      if (!cachedUser || (await checkBackendConnectivity())) return false;
       setSession(null);
       setUser(cachedUser);
       setOfflineAccess(true);
       return true;
     };
 
-    void supabase.auth.getSession().then(({ data }) => {
+    void supabase.auth.getSession().then(async ({ data }) => {
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
-        localStorage.setItem(
+        setStoredValue(
           OFFLINE_USER_KEY,
           JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
         );
       } else {
-        restoreOfflineAccess();
+        await restoreOfflineAccess();
       }
       setLoading(false);
-    }).catch(() => {
-      restoreOfflineAccess();
+    }).catch(async () => {
+      await restoreOfflineAccess();
       setLoading(false);
     });
 
@@ -95,13 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(nextSession?.user ?? null);
       setOfflineAccess(false);
       if (nextSession) {
-        localStorage.setItem(
+        setStoredValue(
           OFFLINE_USER_KEY,
           JSON.stringify({ id: nextSession.user.id, email: nextSession.user.email ?? null })
         );
       } else if (event === "SIGNED_OUT") {
-        localStorage.removeItem(OFFLINE_USER_KEY);
-        localStorage.removeItem(LAST_ACTIVITY_KEY);
+        removeStoredValue(OFFLINE_USER_KEY);
+        removeStoredValue(LAST_ACTIVITY_KEY);
       }
       setLoading(false);
     });
@@ -113,8 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session && !offlineAccess) return;
 
     const signOutForInactivity = () => {
-      localStorage.removeItem(OFFLINE_USER_KEY);
-      localStorage.removeItem(LAST_ACTIVITY_KEY);
+      removeStoredValue(OFFLINE_USER_KEY);
+      removeStoredValue(LAST_ACTIVITY_KEY);
       setOfflineAccess(false);
       void supabase.auth.signOut({ scope: "local" });
     };
@@ -132,20 +134,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       if (now - lastActivityRef.current >= 60_000) {
         lastActivityRef.current = now;
-        localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+        setStoredValue(LAST_ACTIVITY_KEY, String(now));
       }
       window.clearTimeout(timer);
       checkIdle();
     };
 
     let timer: number;
-    const previousActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY));
+    const previousActivity = Number(getStoredValue(LAST_ACTIVITY_KEY));
     lastActivityRef.current = previousActivity || Date.now();
     if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
       signOutForInactivity();
       return;
     }
-    if (!previousActivity) localStorage.setItem(LAST_ACTIVITY_KEY, String(lastActivityRef.current));
+    if (!previousActivity) setStoredValue(LAST_ACTIVITY_KEY, String(lastActivityRef.current));
     checkIdle();
 
     window.addEventListener("pointerdown", recordActivity);
@@ -198,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await supabase.auth.registerPasskey();
       if (error) return { error: error.message };
-      localStorage.setItem(PASSKEY_FLAG, "1");
+      setStoredValue(PASSKEY_FLAG, "1");
       setHasPasskey(true);
       return { error: null };
     } catch (e) {
@@ -209,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setupLocalPin = (pin: string) => {
     void (async () => {
       const hash = await hashPin(pin);
-      localStorage.setItem(PIN_KEY, hash);
+      setStoredValue(PIN_KEY, hash);
       setHasLocalPin(true);
     })();
   };
@@ -221,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearLocalPin = () => {
-    localStorage.removeItem(PIN_KEY);
+    removeStoredValue(PIN_KEY);
     setHasLocalPin(false);
   };
 
@@ -230,8 +232,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setUser(null);
     setOfflineAccess(false);
-    localStorage.removeItem(OFFLINE_USER_KEY);
-    localStorage.removeItem(LAST_ACTIVITY_KEY);
+    removeStoredValue(OFFLINE_USER_KEY);
+    removeStoredValue(LAST_ACTIVITY_KEY);
   };
 
   return (
@@ -265,7 +267,7 @@ export function useAuth(): AuthState {
 }
 
 export async function verifyLocalPin(pin: string): Promise<boolean> {
-  const stored = localStorage.getItem(PIN_KEY);
+  const stored = getStoredValue(PIN_KEY);
   if (!stored) return false;
   const hash = await hashPin(pin);
   return hash === stored;

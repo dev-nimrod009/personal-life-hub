@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Wallet, TrendingUp, TrendingDown, ArrowLeftRight, ShoppingCart, Info } from "lucide-react";
-import { listBudgetItems, addBudgetItem, deleteBudgetItem, listShopping } from "../lib/data";
+import { Plus, Trash2, Wallet, TrendingUp, TrendingDown, ArrowLeftRight, ShoppingCart, Info, Check } from "lucide-react";
+import { listBudgetItems, addBudgetItem, deleteBudgetItem, listShopping, markBudgetItemBought } from "../lib/data";
 import type { BudgetItem, ShoppingItem } from "../lib/types";
 import { Button, Input, EmptyState, Label, Modal, SectionHeader } from "../components/ui";
 import { cn, todayISO } from "../lib/utils";
@@ -14,7 +14,7 @@ export function BudgetPage() {
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    kind: "expense" as "income" | "expense",
+    type: "expense" as "expense" | "income" | "tobuy",
     amount: "",
     category: "Food",
     note: "",
@@ -42,19 +42,19 @@ export function BudgetPage() {
     if (!form.amount.trim() || !Number.isFinite(amount) || amount <= 0) return;
     try {
       await addBudgetItem({
-        kind: form.kind,
+        kind: form.type === "income" ? "income" : "expense",
+        planned: form.type === "tobuy",
         amount,
-        category: form.category,
+        category: form.type === "tobuy" ? "Shopping" : form.category,
         note: form.note.trim(),
         item_date: form.item_date,
       });
       setError("");
+      setOpen(false);
+      setForm({ type: "expense", amount: "", category: "Food", note: "", item_date: todayISO() });
+      await load();
     } catch {
       setError("Could not add the entry.");
-    } finally {
-      setOpen(false);
-      setForm({ kind: "expense", amount: "", category: "Food", note: "", item_date: todayISO() });
-      load();
     }
   };
 
@@ -66,23 +66,28 @@ export function BudgetPage() {
   const { income, expenses, balance } = useMemo(() => {
     let inc = 0, exp = 0;
     for (const item of items) {
+      if (item.planned) continue;
       if (item.kind === "income") inc += item.amount;
-      else exp += item.amount;
+      else if (item.kind === "expense") exp += item.amount;
     }
     return { income: inc, expenses: exp, balance: inc - exp };
   }, [items]);
 
   const stillToBuy = useMemo(
-    () => shopping.filter((s) => !s.bought).reduce((sum, s) => sum + s.est_cost, 0),
-    [shopping]
+    () =>
+      items.filter((item) => item.planned).reduce((sum, item) => sum + item.amount, 0) +
+      shopping.filter((item) => !item.bought).reduce((sum, item) => sum + item.est_cost, 0),
+    [items, shopping]
   );
 
   const remainingAfterBuying = balance - stillToBuy;
+  const plannedItems = items.filter((item) => item.planned);
+  const completedItems = items.filter((item) => !item.planned);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
     for (const item of items) {
-      if (item.kind === "expense") {
+      if (item.kind === "expense" && !item.planned) {
         map.set(item.category, (map.get(item.category) ?? 0) + item.amount);
       }
     }
@@ -109,7 +114,7 @@ export function BudgetPage() {
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">Income</p>
           </div>
-          <p className="font-display text-lg font-bold text-sage-600">KSh {income.toLocaleString()}</p>
+          <p className="font-display text-lg font-bold text-sage-600">KES {income.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-2xl border border-cream-200 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -118,7 +123,7 @@ export function BudgetPage() {
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">Spent</p>
           </div>
-          <p className="font-display text-lg font-bold text-ink-800">KSh {expenses.toLocaleString()}</p>
+          <p className="font-display text-lg font-bold text-ink-800">KES {expenses.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-2xl border border-cream-200 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -127,7 +132,7 @@ export function BudgetPage() {
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">Balance</p>
           </div>
-          <p className="font-display text-lg font-bold text-sage-600">KSh {balance.toLocaleString()}</p>
+          <p className="font-display text-lg font-bold text-sage-600">KES {balance.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-2xl border border-cream-200 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -136,7 +141,7 @@ export function BudgetPage() {
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">Still to buy</p>
           </div>
-          <p className="font-display text-lg font-bold text-ink-800">KSh {stillToBuy.toLocaleString()}</p>
+          <p className="font-display text-lg font-bold text-ink-800">KES {stillToBuy.toLocaleString()}</p>
         </div>
       </section>
 
@@ -145,11 +150,52 @@ export function BudgetPage() {
         <p className="text-sm leading-relaxed">
           After buying everything on your list you would have{" "}
           <span className={cn("font-bold", remainingAfterBuying >= 0 ? "text-white" : "text-rose-200")}>
-            KSh {remainingAfterBuying.toLocaleString()}
+            KES {remainingAfterBuying.toLocaleString()}
           </span>{" "}
           left.
         </p>
       </section>
+
+      {plannedItems.length > 0 && (
+        <section className="bg-white rounded-2xl border border-cream-200 p-5 mb-5">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="font-display text-base font-semibold text-ink-800">Wishlist / Planned Purchases</h2>
+            <span className="text-xs text-ink-500">{plannedItems.length} planned</span>
+          </div>
+          <ul className="space-y-2">
+            {plannedItems.map((item) => (
+              <li key={item.id} className="flex items-center gap-3 rounded-xl border border-cream-200 px-3 py-3">
+                <ShoppingCart size={16} className="text-sage-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink-800 truncate">{item.note || "Planned purchase"}</p>
+                  <p className="text-xs text-ink-500">
+                    {item.category} · {new Date(item.item_date + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-ink-700 shrink-0">KES {item.amount.toLocaleString()}</span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={async () => {
+                    try {
+                      await markBudgetItemBought(item.id);
+                      await load();
+                    } catch {
+                      setError("Could not mark the purchase as bought.");
+                    }
+                  }}
+                  aria-label={`Mark ${item.note || "planned purchase"} as bought`}
+                >
+                  <Check size={14} /> Bought
+                </Button>
+                <button onClick={() => remove(item.id)} className="text-ink-400 hover:text-rose-soft-600" aria-label="Delete planned purchase">
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {byCategory.length > 0 && (
         <section className="bg-white rounded-2xl border border-cream-200 p-5 mb-5">
@@ -159,7 +205,7 @@ export function BudgetPage() {
               <li key={cat}>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-ink-700 font-medium">{cat}</span>
-                  <span className="text-ink-600">KSh {amount.toLocaleString()}</span>
+                  <span className="text-ink-600">KES {amount.toLocaleString()}</span>
                 </div>
                 <div className="h-2 rounded-full bg-cream-100 overflow-hidden">
                   <div className="h-full rounded-full bg-sage-500" style={{ width: `${Math.round((amount / maxCat) * 100)}%` }} />
@@ -172,11 +218,15 @@ export function BudgetPage() {
 
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-xl bg-cream-100 animate-pulse" />)}</div>
-      ) : items.length === 0 ? (
+      ) : completedItems.length === 0 && plannedItems.length === 0 ? (
         <EmptyState icon={<Wallet size={26} />} title="No entries yet" hint="Add income or an expense to start tracking your money." />
+      ) : completedItems.length === 0 ? (
+        <p className="rounded-xl border border-cream-200 bg-white px-4 py-3 text-sm text-ink-500">
+          No completed income or expense entries yet.
+        </p>
       ) : (
         <ul className="space-y-2">
-          {items.map((item) => (
+          {completedItems.map((item) => (
             <li key={item.id} className="group flex items-center gap-3 bg-white rounded-xl border border-cream-200 px-4 py-3">
               <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", item.kind === "income" ? "bg-sage-100" : "bg-rose-soft-100")}>
                 {item.kind === "income" ? <TrendingUp size={15} className="text-sage-600" /> : <TrendingDown size={15} className="text-rose-soft-600" />}
@@ -189,7 +239,7 @@ export function BudgetPage() {
                 </p>
               </div>
               <span className={cn("text-sm font-semibold shrink-0", item.kind === "income" ? "text-sage-600" : "text-rose-soft-600")}>
-                {item.kind === "income" ? "+" : "−"} KSh {item.amount.toLocaleString()}
+                {item.kind === "income" ? "+" : "−"} KES {item.amount.toLocaleString()}
               </span>
               <button onClick={() => remove(item.id)} className="text-ink-400 hover:text-rose-soft-600" aria-label="Delete">
                 <Trash2 size={14} />
@@ -204,27 +254,31 @@ export function BudgetPage() {
           <div>
             <Label>Type</Label>
             <div className="flex gap-2">
-              {(["expense", "income"] as const).map((k) => (
+              {([
+                { value: "expense", label: "Expense" },
+                { value: "income", label: "Income" },
+                { value: "tobuy", label: "To Buy (Wishlist)" },
+              ] as const).map(({ value, label }) => (
                 <button
-                  key={k}
-                  onClick={() => setForm({ ...form, kind: k })}
+                  key={value}
+                  onClick={() => setForm({ ...form, type: value, category: value === "tobuy" ? "Shopping" : form.category })}
                   className={cn(
                     "flex-1 py-2 rounded-lg text-xs font-medium capitalize transition-all",
-                    form.kind === k ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
+                    form.type === value ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
                   )}
                 >
-                  {k}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <Label>Amount (KSh)</Label>
+            <Label>Amount (KES)</Label>
             <Input type="number" min={0} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" autoFocus />
           </div>
           <div>
-            <Label>Category</Label>
-            <div className="flex flex-wrap gap-2">
+            {form.type !== "tobuy" && <Label>Category</Label>}
+            {form.type !== "tobuy" && <div className="flex flex-wrap gap-2">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
@@ -237,7 +291,7 @@ export function BudgetPage() {
                   {cat}
                 </button>
               ))}
-            </div>
+            </div>}
           </div>
           <div>
             <Label>Note (optional)</Label>

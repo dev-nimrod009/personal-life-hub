@@ -33,7 +33,7 @@ const MEAL_EMOJI: Record<string, string> = {
   Snack: "🍎",
 };
 
-type Tab = "week" | "library" | "recipes" | "pantry" | "shopping";
+export type MealTab = "week" | "library" | "recipes" | "pantry" | "shopping";
 
 function startOfWeekMonday(): string {
   const now = new Date();
@@ -51,8 +51,23 @@ function addDaysISO(base: string, offset: number): string {
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export function MealsPage() {
-  const [tab, setTab] = useState<Tab>("week");
+export function MealsPage({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab?: MealTab;
+  onTabChange?: (tab: MealTab) => void;
+}) {
+  const [tab, setTab] = useState<MealTab>(activeTab ?? "week");
+
+  useEffect(() => {
+    if (activeTab) setTab(activeTab);
+  }, [activeTab]);
+
+  const selectTab = (nextTab: MealTab) => {
+    if (onTabChange) onTabChange(nextTab);
+    else setTab(nextTab);
+  };
 
   return (
     <div className="animate-fade-up pb-4">
@@ -75,13 +90,13 @@ export function MealsPage() {
           { id: "recipes", label: "Recipes", icon: FlaskConical },
           { id: "pantry", label: "Pantry", icon: Wallet },
           { id: "shopping", label: "Shopping", icon: ShoppingCart },
-        ] as { id: Tab; label: string; icon: typeof Salad }[]).map((t) => {
+        ] as { id: MealTab; label: string; icon: typeof Salad }[]).map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.id;
           return (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => selectTab(t.id)}
               className={cn(
                 "shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all",
                 isActive ? "bg-sage-600 text-white shadow-sm" : "bg-white border border-cream-200 text-ink-600 hover:bg-cream-100"

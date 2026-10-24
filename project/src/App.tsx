@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X, Feather } from "lucide-react";
 import { Sidebar, MobileNav, CompactNav, type SectionId } from "./components/nav";
 import { InstallAppCard } from "./components/InstallAppCard";
@@ -20,8 +20,9 @@ import { GratitudePage } from "./pages/GratitudePage";
 import { GoalsPage } from "./pages/GoalsPage";
 import { BrainDumpPage } from "./pages/BrainDumpPage";
 import { QuoteVaultPage } from "./pages/QuoteVaultPage";
+import type { MealTab } from "./pages/MealsPage";
 
-function renderSection(section: SectionId, onNavigate: (id: string) => void) {
+function renderSection(section: SectionId, onNavigate: (id: string) => void, mealTab: MealTab) {
   switch (section) {
     case "dashboard":
       return <DashboardPage onNavigate={onNavigate} />;
@@ -42,7 +43,7 @@ function renderSection(section: SectionId, onNavigate: (id: string) => void) {
     case "habits":
       return <HabitsPage />;
     case "meals":
-      return <MealsPage />;
+      return <MealsPage activeTab={mealTab} onTabChange={(tab) => onNavigate(`meals:${tab}`)} />;
     case "budget":
       return <BudgetPage />;
     case "mood":
@@ -78,15 +79,64 @@ const SECTION_TITLES: Record<SectionId, string> = {
 };
 
 export default function App() {
-  const { session, loading } = useAuth();
+  const { session, loading, offlineAccess } = useAuth();
   const [section, setSection] = useState<SectionId>("dashboard");
+  const [mealTab, setMealTab] = useState<MealTab>("week");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  useEffect(() => {
+    window.history.replaceState(
+      { ...(window.history.state ?? {}), appSection: "dashboard", mealTab: "week" },
+      "",
+      window.location.href
+    );
+    const restoreSection = (event: PopStateEvent) => {
+      const sectionId = event.state?.appSection;
+      if (typeof sectionId === "string" && Object.prototype.hasOwnProperty.call(SECTION_TITLES, sectionId)) {
+        setSection(sectionId as SectionId);
+      } else {
+        setSection("dashboard");
+      }
+      const tab = event.state?.mealTab;
+      setMealTab(
+        tab === "week" || tab === "library" || tab === "recipes" || tab === "pantry" || tab === "shopping"
+          ? tab
+          : "week"
+      );
+      setMenuOpen(false);
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener("popstate", restoreSection);
+    return () => window.removeEventListener("popstate", restoreSection);
+  }, []);
+
   const navigate = (id: string) => {
-    setSection(id as SectionId);
+    const mealTarget = id.match(/^meals:(week|library|recipes|pantry|shopping)$/);
+    const nextSection = mealTarget ? "meals" : id;
+    if (!Object.prototype.hasOwnProperty.call(SECTION_TITLES, nextSection)) return;
+    const nextMealTab = mealTarget ? (mealTarget[1] as MealTab) : nextSection === "meals" ? mealTab : "week";
+    if (nextSection !== section || (nextSection === "meals" && nextMealTab !== mealTab)) {
+      window.history.pushState(
+        { appSection: nextSection, mealTab: nextMealTab },
+        "",
+        window.location.href
+      );
+      setSection(nextSection as SectionId);
+      setMealTab(nextMealTab);
+    }
     setMenuOpen(false);
     window.scrollTo({ top: 0 });
   };
+  const mobileTitle =
+    section !== "meals"
+      ? SECTION_TITLES[section]
+      : mealTab === "pantry"
+        ? "Pantry"
+        : mealTab === "shopping"
+          ? "Shop"
+          : mealTab === "recipes"
+            ? "Recipes"
+            : "Meal Planner";
 
   if (loading) {
     return (
@@ -96,7 +146,7 @@ export default function App() {
     );
   }
 
-  if (!session) return <SignInScreen />;
+  if (!session && !offlineAccess) return <SignInScreen />;
 
   return (
     <div className="min-h-screen">
@@ -104,7 +154,7 @@ export default function App() {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <Feather size={20} className="text-sage-600" />
-            <span className="font-display text-lg font-semibold text-ink-800">{SECTION_TITLES[section]}</span>
+            <span className="font-display text-lg font-semibold text-ink-800">{mobileTitle}</span>
           </div>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -131,11 +181,11 @@ export default function App() {
         </aside>
 
         <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-10 pb-24 md:pb-10 max-w-4xl mx-auto w-full">
-          {renderSection(section, navigate)}
+          {renderSection(section, navigate, mealTab)}
         </main>
       </div>
 
-      <MobileNav active={section} onNavigate={navigate} />
+      <MobileNav active={section} mealTab={mealTab} onNavigate={navigate} />
       <InstallAppCard />
     </div>
   );

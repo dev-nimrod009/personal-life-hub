@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, CheckCircle2, ClipboardList, CupSoda, Heart, Notebook, Salad, Smile, Target, Utensils, Bell, Inbox, Quote, UserRound, Wallet } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, ClipboardList, CupSoda, Heart, Notebook, Salad, ShoppingCart, Smile, Target, Utensils, Bell, Inbox, Quote, UserRound, Wallet } from "lucide-react";
 import { cn } from "../lib/utils";
 
 export type SectionId =
@@ -62,7 +62,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Account",
+    title: "Settings",
     items: [{ id: "profile", label: "Profile", icon: UserRound }],
   },
 ];
@@ -106,21 +106,29 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
   );
 }
 
-export function MobileNav({ active, onNavigate }: SidebarProps) {
+export function MobileNav({
+  active,
+  mealTab,
+  onNavigate,
+}: {
+  active: SectionId;
+  mealTab: "week" | "library" | "recipes" | "pantry" | "shopping";
+  onNavigate: (id: string) => void;
+}) {
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-cream-200">
       <div className="grid grid-cols-5">
         {(
           [
-            { id: "dashboard", label: "Today", icon: CalendarDays },
-            { id: "journal", label: "Journal", icon: BookOpen },
-            { id: "dayplans", label: "Plans", icon: ClipboardList },
-            { id: "habits", label: "Habits", icon: CheckCircle2 },
-            { id: "meals", label: "Meals", icon: Utensils },
-          ] as NavItem[]
+            { id: "meals:pantry", section: "meals", tab: "pantry", label: "Pantry", icon: Wallet },
+            { id: "meals:shopping", section: "meals", tab: "shopping", label: "Shop", icon: ShoppingCart },
+            { id: "dayplans", section: "dayplans", label: "Plan", icon: ClipboardList },
+            { id: "meals:recipes", section: "meals", tab: "recipes", label: "Recipes", icon: Salad },
+            { id: "profile", section: "profile", label: "Settings", icon: UserRound },
+          ] as { id: string; section: SectionId; tab?: string; label: string; icon: typeof BookOpen }[]
         ).map((item) => {
           const Icon = item.icon;
-          const isActive = active === item.id;
+          const isActive = active === item.section && (!item.tab || item.tab === mealTab);
           return (
             <button
               key={item.id}

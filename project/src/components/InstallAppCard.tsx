@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getStoredValue, setStoredValue } from "../lib/storage";
 import { Smartphone, X } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -12,7 +13,7 @@ export function InstallAppCard() {
   const [installed, setInstalled] = useState(
     () => window.matchMedia("(display-mode: standalone)").matches || (window.navigator as { standalone?: boolean }).standalone === true
   );
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem("lifehub:install-dismissed") === "1");
+  const [dismissed, setDismissed] = useState(() => getStoredValue("lifehub:install-dismissed") === "1");
   const [platform, setPlatform] = useState<"ios" | "other">("other");
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export function InstallAppCard() {
   if (!installEvent && platform !== "ios") return null;
 
   const hide = () => {
-    localStorage.setItem("lifehub:install-dismissed", "1");
+    setStoredValue("lifehub:install-dismissed", "1");
     setDismissed(true);
   };
 

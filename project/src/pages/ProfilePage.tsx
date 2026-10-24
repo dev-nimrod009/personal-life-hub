@@ -87,7 +87,7 @@ export function ProfilePage() {
     if (!user) return;
     void (async () => {
       try {
-        const data = await getProfile(user.id);
+        const data = await getProfile(user.id, user.email ?? undefined);
         if (data) {
           setProfile(data);
           setForm({
@@ -264,6 +264,9 @@ export function ProfilePage() {
                   {form.full_name.trim() || "Unnamed"}
                 </p>
                 <p className="text-sm text-ink-500 truncate">{profile.email}</p>
+                <p className="text-xs text-ink-500 mt-1">
+                  Member since {new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
+                </p>
               </div>
             </div>
           </section>
