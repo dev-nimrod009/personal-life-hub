@@ -22,6 +22,7 @@ import type {
   ShoppingItem,
   BudgetItem,
 } from "./types";
+import { todayISO } from "./utils";
 
 type Row = Record<string, unknown>;
 
@@ -103,7 +104,7 @@ async function runRemote(item: SyncItem): Promise<void> {
 
 function looksOffline(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
-  return !navigator.onLine || /fetch|network|load failed|timed? ?out|failed to fetch/i.test(msg);
+  return (typeof navigator !== "undefined" && !navigator.onLine) || /fetch|network|load failed|timed? ?out|failed to fetch/i.test(msg);
 }
 
 async function remoteOrQueue(item: Omit<SyncItem, "ts">): Promise<void> {
@@ -179,7 +180,7 @@ async function fetchAll(table: string): Promise<Row[]> {
     // Any read failure (offline, flaky network, timeout) falls back to the last
     // saved copy on this device so the app is always usable offline.
     const cached = readLocal(table);
-    if (cached.length > 0) return cached;
+    if (cached.length > 0 || looksOffline(e)) return cached;
     throw e;
   }
 }
@@ -192,25 +193,44 @@ function cacheWithoutRemoteDeleted(table: string, cloudIds: Set<unknown>): Row[]
     .reduce((rows, s) => rows.filter((r) => r.id !== s.row.id), readLocal(table).filter((r) => !cloudIds.has(r.id)));
 }
 
-function take<T>(rows: Row[], convert: (r: Row) => T): T {
-  return convert(rows[0] ?? {});
-}
-
 function byDateDesc(a: Row, b: Row): number {
   return String(b.entry_date ?? "").localeCompare(String(a.entry_date ?? ""));
 }
 
 // ---------- profile ----------
 
-export async function getProfile(userId: string): Promise<Profile | null> {
+export async function getProfile(userId: string, email?: string): Promise<Profile | null> {
   const rows = await fetchAll("profiles");
   const own = rows.find((r) => r.id === userId);
-  if (own) return take([own], (r) => r as unknown as Profile);
-  const user = (await supabase.auth.getUser()).data.user;
-  if (!user?.email) return null;
-  const row = { id: userId, email: user.email };
+  if (own) {
+    return {
+      id: userId,
+      email: String(own.email ?? ""),
+      full_name: String(own.full_name ?? ""),
+      avatar_url: String(own.avatar_url ?? ""),
+      bio: String(own.bio ?? ""),
+      location: String(own.location ?? ""),
+      birthday: typeof own.birthday === "string" ? own.birthday : null,
+      created_at: String(own.created_at ?? new Date().toISOString()),
+      updated_at: String(own.updated_at ?? new Date().toISOString()),
+    };
+  }
+  const profileEmail = email ?? (await supabase.auth.getUser()).data.user?.email;
+  if (!profileEmail) return null;
+  const now = new Date().toISOString();
+  const row = {
+    id: userId,
+    email: profileEmail,
+    full_name: "",
+    avatar_url: "",
+    bio: "",
+    location: "",
+    birthday: null,
+    created_at: now,
+    updated_at: now,
+  };
   await remoteOrQueue({ table: "profiles", kind: "insert", row });
-  return row as unknown as Profile;
+  return row as Profile;
 }
 
 export async function updateProfile(userId: string, changes: Partial<Profile>): Promise<void> {
@@ -248,7 +268,14 @@ export async function upsertJournal(entry: { id?: string; title: string; content
     await remoteOrQueue({
       table: "journal_entries",
       kind: "insert",
-      row: { id: uid(), title: entry.title, content: entry.content, mood: entry.mood },
+      row: {
+        id: uid(),
+        title: entry.title,
+        content: entry.content,
+        mood: entry.mood,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
     });
   }
 }
@@ -834,6 +861,26 @@ export async function setShoppingBought(id: string, bought: boolean): Promise<vo
   await remoteOrQueue({ table: "shopping_list", kind: "update", row: { id }, changes: { bought } });
 }
 
+export async function recordShoppingPurchase(item: ShoppingItem): Promise<void> {
+  if (item.bought) return;
+  const budgetItems = await listBudgetItems();
+  if (!budgetItems.some((budgetItem) => budgetItem.id === item.id)) {
+    await remoteOrQueue({
+      table: "budget_items",
+      kind: "insert",
+      row: {
+        id: item.id,
+        kind: "expense",
+        amount: Math.max(0, Math.round(item.est_cost)),
+        category: "Shopping",
+        note: `${item.name}${item.quantity ? ` · ${item.quantity}` : ""}`,
+        item_date: todayISO(),
+      },
+    });
+  }
+  await setShoppingBought(item.id, true);
+}
+
 export async function deleteShoppingItem(id: string): Promise<void> {
   await remoteOrQueue({ table: "shopping_list", kind: "delete", row: { id } });
 }
@@ -848,6 +895,7 @@ export async function listBudgetItems(): Promise<BudgetItem[]> {
 }
 
 export async function addBudgetItem(entry: {
+  id?: string;
   kind: "income" | "expense";
   amount: number;
   category: string;
@@ -858,7 +906,7 @@ export async function addBudgetItem(entry: {
     table: "budget_items",
     kind: "insert",
     row: {
-      id: uid(),
+      id: entry.id ?? uid(),
       kind: entry.kind,
       amount: Math.max(0, Math.round(entry.amount)),
       category: entry.category,

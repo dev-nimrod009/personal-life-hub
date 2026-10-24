@@ -31286,6 +31286,20 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 const AuthContext = reactExports.createContext(null);
 const PASSKEY_FLAG = "lifehub:has-passkey";
 const PIN_KEY = "lifehub:local-pin";
+const OFFLINE_USER_KEY = "lifehub:offline-user";
+const LAST_ACTIVITY_KEY = "lifehub:last-activity";
+const IDLE_TIMEOUT_MS = 30 * 60 * 1e3;
+function readOfflineUser() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(OFFLINE_USER_KEY) ?? "null");
+    if (typeof cached === "object" && cached !== null && "id" in cached && typeof cached.id === "string" && "email" in cached && (typeof cached.email === "string" || cached.email === null)) {
+      return { id: cached.id, email: cached.email ?? void 0 };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 async function hashPin(pin) {
   const data = new TextEncoder().encode(pin);
   const hash = await crypto.subtle.digest("SHA-256", data);
@@ -31295,22 +31309,98 @@ function AuthProvider({ children }) {
   const [session, setSession] = reactExports.useState(null);
   const [user, setUser] = reactExports.useState(null);
   const [loading, setLoading] = reactExports.useState(true);
+  const [offlineAccess, setOfflineAccess] = reactExports.useState(false);
+  const lastActivityRef = reactExports.useRef(0);
   const [hasPasskey, setHasPasskey] = reactExports.useState(() => localStorage.getItem(PASSKEY_FLAG) === "1");
   const [hasLocalPin, setHasLocalPin] = reactExports.useState(() => localStorage.getItem(PIN_KEY) !== null);
   reactExports.useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      var _a;
-      setSession(data.session);
-      setUser(((_a = data.session) == null ? void 0 : _a.user) ?? null);
+    const restoreOfflineAccess = () => {
+      const cachedUser = readOfflineUser();
+      if (!cachedUser || navigator.onLine) return false;
+      setSession(null);
+      setUser(cachedUser);
+      setOfflineAccess(true);
+      return true;
+    };
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        localStorage.setItem(
+          OFFLINE_USER_KEY,
+          JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
+        );
+      } else {
+        restoreOfflineAccess();
+      }
+      setLoading(false);
+    }).catch(() => {
+      restoreOfflineAccess();
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setUser((nextSession == null ? void 0 : nextSession.user) ?? null);
+      setOfflineAccess(false);
+      if (nextSession) {
+        localStorage.setItem(
+          OFFLINE_USER_KEY,
+          JSON.stringify({ id: nextSession.user.id, email: nextSession.user.email ?? null })
+        );
+      } else if (event === "SIGNED_OUT") {
+        localStorage.removeItem(OFFLINE_USER_KEY);
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+      }
       setLoading(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+  reactExports.useEffect(() => {
+    if (!session && !offlineAccess) return;
+    const signOutForInactivity = () => {
+      localStorage.removeItem(OFFLINE_USER_KEY);
+      localStorage.removeItem(LAST_ACTIVITY_KEY);
+      setOfflineAccess(false);
+      void supabase.auth.signOut({ scope: "local" });
+    };
+    const checkIdle = () => {
+      const elapsed = Date.now() - lastActivityRef.current;
+      if (elapsed >= IDLE_TIMEOUT_MS) {
+        signOutForInactivity();
+        return;
+      }
+      timer = window.setTimeout(checkIdle, IDLE_TIMEOUT_MS - elapsed);
+    };
+    const recordActivity = () => {
+      const now = Date.now();
+      if (now - lastActivityRef.current >= 6e4) {
+        lastActivityRef.current = now;
+        localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+      }
+      window.clearTimeout(timer);
+      checkIdle();
+    };
+    let timer;
+    const previousActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY));
+    lastActivityRef.current = previousActivity || Date.now();
+    if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+      signOutForInactivity();
+      return;
+    }
+    if (!previousActivity) localStorage.setItem(LAST_ACTIVITY_KEY, String(lastActivityRef.current));
+    checkIdle();
+    window.addEventListener("pointerdown", recordActivity);
+    window.addEventListener("keydown", recordActivity);
+    window.addEventListener("touchstart", recordActivity);
+    document.addEventListener("visibilitychange", recordActivity);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", recordActivity);
+      window.removeEventListener("keydown", recordActivity);
+      window.removeEventListener("touchstart", recordActivity);
+      document.removeEventListener("visibilitychange", recordActivity);
+    };
+  }, [session, offlineAccess]);
   const signUp = async (email, password) => {
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) return { error: error.message };
@@ -31366,9 +31456,12 @@ function AuthProvider({ children }) {
     setHasLocalPin(false);
   };
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     setSession(null);
     setUser(null);
+    setOfflineAccess(false);
+    localStorage.removeItem(OFFLINE_USER_KEY);
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     AuthContext.Provider,
@@ -31377,6 +31470,7 @@ function AuthProvider({ children }) {
         session,
         user,
         loading,
+        offlineAccess,
         signUp,
         signIn,
         signInWithPasskey,
@@ -31693,7 +31787,7 @@ async function runRemote(item) {
 }
 function looksOffline(e) {
   const msg = e instanceof Error ? e.message : String(e);
-  return !navigator.onLine || /fetch|network|load failed|timed? ?out|failed to fetch/i.test(msg);
+  return typeof navigator !== "undefined" && !navigator.onLine || /fetch|network|load failed|timed? ?out|failed to fetch/i.test(msg);
 }
 async function remoteOrQueue(item) {
   writeLocalForItem(item);
@@ -31760,26 +31854,47 @@ async function fetchAll(table) {
     return [...rows, ...cache];
   } catch (e) {
     const cached = readLocal(table);
-    if (cached.length > 0) return cached;
+    if (cached.length > 0 || looksOffline(e)) return cached;
     throw e;
   }
 }
 function cacheWithoutRemoteDeleted(table, cloudIds) {
   return readQueue().filter((s) => s.table === table && s.kind === "delete").reduce((rows, s) => rows.filter((r2) => r2.id !== s.row.id), readLocal(table).filter((r2) => !cloudIds.has(r2.id)));
 }
-function take(rows, convert) {
-  return convert(rows[0] ?? {});
-}
 function byDateDesc(a, b) {
   return String(b.entry_date ?? "").localeCompare(String(a.entry_date ?? ""));
 }
-async function getProfile(userId) {
+async function getProfile(userId, email) {
+  var _a;
   const rows = await fetchAll("profiles");
   const own = rows.find((r2) => r2.id === userId);
-  if (own) return take([own], (r2) => r2);
-  const user = (await supabase.auth.getUser()).data.user;
-  if (!(user == null ? void 0 : user.email)) return null;
-  const row = { id: userId, email: user.email };
+  if (own) {
+    return {
+      id: userId,
+      email: String(own.email ?? ""),
+      full_name: String(own.full_name ?? ""),
+      avatar_url: String(own.avatar_url ?? ""),
+      bio: String(own.bio ?? ""),
+      location: String(own.location ?? ""),
+      birthday: typeof own.birthday === "string" ? own.birthday : null,
+      created_at: String(own.created_at ?? (/* @__PURE__ */ new Date()).toISOString()),
+      updated_at: String(own.updated_at ?? (/* @__PURE__ */ new Date()).toISOString())
+    };
+  }
+  const profileEmail = email ?? ((_a = (await supabase.auth.getUser()).data.user) == null ? void 0 : _a.email);
+  if (!profileEmail) return null;
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const row = {
+    id: userId,
+    email: profileEmail,
+    full_name: "",
+    avatar_url: "",
+    bio: "",
+    location: "",
+    birthday: null,
+    created_at: now,
+    updated_at: now
+  };
   await remoteOrQueue({ table: "profiles", kind: "insert", row });
   return row;
 }
@@ -31812,7 +31927,14 @@ async function upsertJournal(entry) {
     await remoteOrQueue({
       table: "journal_entries",
       kind: "insert",
-      row: { id: uid(), title: entry.title, content: entry.content, mood: entry.mood }
+      row: {
+        id: uid(),
+        title: entry.title,
+        content: entry.content,
+        mood: entry.mood,
+        created_at: (/* @__PURE__ */ new Date()).toISOString(),
+        updated_at: (/* @__PURE__ */ new Date()).toISOString()
+      }
     });
   }
 }
@@ -32222,7 +32344,7 @@ async function addBudgetItem(entry) {
     table: "budget_items",
     kind: "insert",
     row: {
-      id: uid(),
+      id: entry.id ?? uid(),
       kind: entry.kind,
       amount: Math.max(0, Math.round(entry.amount)),
       category: entry.category,
