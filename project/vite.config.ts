@@ -22,7 +22,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png"],
+      includeAssets: [
+        "favicon.svg",
+        "icon-192.png",
+        "icon-512.png",
+        "screenshot-desktop.png",
+        "screenshot-mobile.png",
+      ],
       manifest: {
         name: "Life Hub",
         short_name: "Life Hub",
@@ -32,6 +38,21 @@ export default defineConfig({
         display: "standalone",
         id: "/",
         start_url: "/",
+        screenshots: [
+          {
+            src: "/screenshot-desktop.png",
+            sizes: "1280x720",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Life Hub Desktop Dashboard",
+          },
+          {
+            src: "/screenshot-mobile.png",
+            sizes: "750x1334",
+            type: "image/png",
+            label: "Life Hub Mobile View",
+          },
+        ],
         icons: [
           {
             src: "/icon-192.png",
