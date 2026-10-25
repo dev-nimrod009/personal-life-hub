@@ -32,11 +32,11 @@ export function DayPlansPage() {
     try {
       await addDayPlannerTask(newTask.trim(), date);
       setError("");
+      setNewTask("");
+      await load();
     } catch {
       setError("Could not add the task.");
     }
-    setNewTask("");
-    load();
   };
 
   const toggle = async (task: DayPlanTask) => {

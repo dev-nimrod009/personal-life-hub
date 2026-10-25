@@ -58,12 +58,14 @@ export function RemindersPage() {
     try {
       await upsertReminder(editing ? { id: editing.id, ...payload } : payload);
       setError("");
+      setForm({ title: "", notes: "", due_at: "" });
+      setEditing(null);
+      setOpen(false);
+      await load();
     } catch {
       setError("Could not save the reminder.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      load();
     }
   };
 
@@ -178,7 +180,15 @@ export function RemindersPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Edit reminder" : "New reminder"}>
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setEditing(null);
+          setForm({ title: "", notes: "", due_at: "" });
+        }}
+        title={editing ? "Edit reminder" : "New reminder"}
+      >
         <div className="space-y-4">
           <div>
             <Label>Title</Label>

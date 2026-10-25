@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, CheckCircle2, ClipboardList, CupSoda, Heart, Notebook, Salad, ShoppingCart, Smile, Target, Utensils, Bell, Inbox, Quote, UserRound, Wallet } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, ClipboardList, CupSoda, Heart, Notebook, Salad, Smile, Target, Utensils, Bell, Inbox, Quote, UserRound, Wallet } from "lucide-react";
 import { cn } from "../lib/utils";
 
 export type SectionId =
@@ -62,7 +62,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Settings",
+    title: "Account",
     items: [{ id: "profile", label: "Profile", icon: UserRound }],
   },
 ];
@@ -106,70 +106,33 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
   );
 }
 
-export function MobileNav({
-  active,
-  mealTab,
-  onNavigate,
-}: {
-  active: SectionId;
-  mealTab: "week" | "library" | "recipes" | "pantry" | "shopping";
-  onNavigate: (id: string) => void;
-}) {
-  return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-cream-200">
-      <div className="grid grid-cols-5">
-        {(
-          [
-            { id: "meals:pantry", section: "meals", tab: "pantry", label: "Pantry", icon: Wallet },
-            { id: "meals:shopping", section: "meals", tab: "shopping", label: "Shop", icon: ShoppingCart },
-            { id: "dayplans", section: "dayplans", label: "Plan", icon: ClipboardList },
-            { id: "meals:recipes", section: "meals", tab: "recipes", label: "Recipes", icon: Salad },
-            { id: "profile", section: "profile", label: "Settings", icon: UserRound },
-          ] as { id: string; section: SectionId; tab?: string; label: string; icon: typeof BookOpen }[]
-        ).map((item) => {
-          const Icon = item.icon;
-          const isActive = active === item.section && (!item.tab || item.tab === mealTab);
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={cn(
-                "flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors",
-                isActive ? "text-sage-600" : "text-ink-500"
-              )}
-            >
-              <Icon size={19} />
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
-
-const ALL_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
-
 export function CompactNav({ active, onNavigate }: SidebarProps) {
   return (
-    <div className="grid grid-cols-3 gap-1 p-3">
-      {ALL_ITEMS.map((item) => {
-        const Icon = item.icon;
-        const isActive = active === item.id;
-        return (
-          <button
-            key={item.id}
-            onClick={() => onNavigate(item.id)}
-            className={cn(
-              "flex flex-col items-center gap-1 py-2.5 rounded-lg text-[11px] font-medium transition-all",
-              isActive ? "bg-sage-500 text-white" : "text-ink-600 hover:bg-cream-100"
-            )}
-          >
-            <Icon size={17} className={cn(isActive ? "text-white" : "text-ink-500")} />
-            {item.label}
-          </button>
-        );
-      })}
-    </div>
+    <nav className="w-[25vw] min-w-[220px] max-w-[320px] max-h-[calc(100vh-64px)] overflow-y-auto p-3">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.title} className="mb-3 last:mb-0">
+          <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-500/70">
+            {group.title}
+          </p>
+          {group.items.map((item) => {
+            const Icon = item.icon;
+            const isActive = active === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  isActive ? "bg-sage-500 text-white" : "text-ink-600 hover:bg-cream-100"
+                )}
+              >
+                <Icon size={17} className={cn("shrink-0", isActive ? "text-white" : "text-ink-500")} />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
   );
 }

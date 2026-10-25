@@ -18,11 +18,13 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
   const [intakes, setIntakes] = useState<WaterIntake[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [waterSaving, setWaterSaving] = useState(false);
+  const [waterError, setWaterError] = useState("");
 
   const today = todayISO();
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (withSkeleton = true) => {
+    if (withSkeleton) setLoading(true);
     try {
       const [allTasks, allReminders, habitsList, logsList, latestMoods, latestWater, profileData] = await Promise.all([
         listDayPlanner(),
@@ -87,14 +89,18 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
   };
 
   const quickWater = async () => {
+    if (waterSaving) return;
+    setWaterSaving(true);
     const next = glasses + 1;
     setIntakes([{ id: "today", intake_date: today, glasses: next, goal } as WaterIntake]);
     try {
       await upsertWater(today, next, goal);
+      setWaterError("");
     } catch {
-      // revert handled by next load
+      setWaterError("Could not update water intake. Please try again.");
     } finally {
-      load();
+      await load(false);
+      setWaterSaving(false);
     }
   };
 
@@ -220,14 +226,16 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
               <p className="text-sm text-ink-500 flex-1">of {goal} glasses</p>
               <Button
                 size="sm"
+                disabled={waterSaving}
                 onClick={(e) => {
                   e.stopPropagation();
-                  quickWater();
+                  void quickWater();
                 }}
               >
-                +1 glass
+                {waterSaving ? "Saving..." : "+1 glass"}
               </Button>
             </div>
+            {waterError && <p className="mt-2 text-xs text-rose-soft-600" role="alert">{waterError}</p>}
           </section>
         </div>
       )}

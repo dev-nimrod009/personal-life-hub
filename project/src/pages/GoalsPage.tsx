@@ -59,13 +59,13 @@ export function GoalsPage() {
         timeframe: form.timeframe,
       });
       setError("");
+      setOpen(false);
+      setForm({ title: "", description: "", timeframe: "yearly" });
+      await load();
     } catch {
       setError("Could not create the goal.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      setForm({ title: "", description: "", timeframe: "yearly" });
-      load();
     }
   };
 
@@ -241,7 +241,14 @@ export function GoalsPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New goal">
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setForm({ title: "", description: "", timeframe: "yearly" });
+        }}
+        title="New goal"
+      >
         <div className="space-y-4">
           <div>
             <Label>Goal</Label>

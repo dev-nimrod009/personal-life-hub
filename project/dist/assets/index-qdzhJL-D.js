@@ -7340,17 +7340,6 @@ const CupSoda = createLucideIcon("CupSoda", [
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const Database = createLucideIcon("Database", [
-  ["ellipse", { cx: "12", cy: "5", rx: "9", ry: "3", key: "msslwz" }],
-  ["path", { d: "M3 5V19A9 3 0 0 0 21 19V5", key: "1wlel7" }],
-  ["path", { d: "M3 12A9 3 0 0 0 21 12", key: "mv7ke4" }]
-]);
-/**
- * @license lucide-react v0.462.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
 const Download = createLucideIcon("Download", [
   ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
   ["polyline", { points: "7 10 12 15 17 10", key: "2ggqvy" }],
@@ -10436,61 +10425,55 @@ function Sidebar({ active, onNavigate }) {
     }) })
   ] }, group.title)) });
 }
-function MobileNav({ active, onNavigate }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-cream-200", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-5", children: [
-    { id: "dashboard", label: "Today", icon: CalendarDays },
-    { id: "journal", label: "Journal", icon: BookOpen },
-    { id: "dayplans", label: "Plans", icon: ClipboardList },
-    { id: "habits", label: "Habits", icon: CircleCheck },
-    { id: "meals", label: "Meals", icon: Utensils }
-  ].map((item) => {
-    const Icon2 = item.icon;
-    const isActive = active === item.id;
-    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "button",
-      {
-        onClick: () => onNavigate(item.id),
-        className: cn(
-          "flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors",
-          isActive ? "text-sage-600" : "text-ink-500"
-        ),
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { size: 19 }),
-          item.label
-        ]
-      },
-      item.id
-    );
-  }) }) });
-}
-const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 function CompactNav({ active, onNavigate }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-3 gap-1 p-3", children: ALL_ITEMS.map((item) => {
-    const Icon2 = item.icon;
-    const isActive = active === item.id;
-    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "button",
-      {
-        onClick: () => onNavigate(item.id),
-        className: cn(
-          "flex flex-col items-center gap-1 py-2.5 rounded-lg text-[11px] font-medium transition-all",
-          isActive ? "bg-sage-500 text-white" : "text-ink-600 hover:bg-cream-100"
-        ),
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { size: 17, className: cn(isActive ? "text-white" : "text-ink-500") }),
-          item.label
-        ]
-      },
-      item.id
-    );
-  }) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "w-[25vw] min-w-[220px] max-w-[320px] max-h-[calc(100vh-64px)] overflow-y-auto p-3", children: NAV_GROUPS.map((group) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-3 last:mb-0", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-500/70", children: group.title }),
+    group.items.map((item) => {
+      const Icon2 = item.icon;
+      const isActive = active === item.id;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => onNavigate(item.id),
+          className: cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+            isActive ? "bg-sage-500 text-white" : "text-ink-600 hover:bg-cream-100"
+          ),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { size: 17, className: cn("shrink-0", isActive ? "text-white" : "text-ink-500") }),
+            item.label
+          ]
+        },
+        item.id
+      );
+    })
+  ] }, group.title)) });
+}
+function getStoredValue(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function setStoredValue(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+  }
+}
+function removeStoredValue(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+  }
 }
 function InstallAppCard() {
   const [installEvent, setInstallEvent] = reactExports.useState(null);
   const [installed, setInstalled] = reactExports.useState(
     () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
   );
-  const [dismissed, setDismissed] = reactExports.useState(() => localStorage.getItem("lifehub:install-dismissed") === "1");
+  const [dismissed, setDismissed] = reactExports.useState(() => getStoredValue("lifehub:install-dismissed") === "1");
   const [platform, setPlatform] = reactExports.useState("other");
   reactExports.useEffect(() => {
     setPlatform(/iphone|ipad|ipod/i.test(navigator.userAgent) ? "ios" : "other");
@@ -10512,7 +10495,7 @@ function InstallAppCard() {
   if (installed || dismissed) return null;
   if (!installEvent && platform !== "ios") return null;
   const hide = () => {
-    localStorage.setItem("lifehub:install-dismissed", "1");
+    setStoredValue("lifehub:install-dismissed", "1");
     setDismissed(true);
   };
   const install = async () => {
@@ -31283,479 +31266,35 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storageKey: "lifehub:auth"
   }
 });
-const AuthContext = reactExports.createContext(null);
-const PASSKEY_FLAG = "lifehub:has-passkey";
-const PIN_KEY = "lifehub:local-pin";
-const OFFLINE_USER_KEY = "lifehub:offline-user";
-const LAST_ACTIVITY_KEY = "lifehub:last-activity";
-const IDLE_TIMEOUT_MS = 30 * 60 * 1e3;
-function readOfflineUser() {
-  try {
-    const cached = JSON.parse(localStorage.getItem(OFFLINE_USER_KEY) ?? "null");
-    if (typeof cached === "object" && cached !== null && "id" in cached && typeof cached.id === "string" && "email" in cached && (typeof cached.email === "string" || cached.email === null)) {
-      return { id: cached.id, email: cached.email ?? void 0 };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-async function hashPin(pin) {
-  const data = new TextEncoder().encode(pin);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-function AuthProvider({ children }) {
-  const [session, setSession] = reactExports.useState(null);
-  const [user, setUser] = reactExports.useState(null);
-  const [loading, setLoading] = reactExports.useState(true);
-  const [offlineAccess, setOfflineAccess] = reactExports.useState(false);
-  const lastActivityRef = reactExports.useRef(0);
-  const [hasPasskey, setHasPasskey] = reactExports.useState(() => localStorage.getItem(PASSKEY_FLAG) === "1");
-  const [hasLocalPin, setHasLocalPin] = reactExports.useState(() => localStorage.getItem(PIN_KEY) !== null);
-  reactExports.useEffect(() => {
-    const restoreOfflineAccess = () => {
-      const cachedUser = readOfflineUser();
-      if (!cachedUser || navigator.onLine) return false;
-      setSession(null);
-      setUser(cachedUser);
-      setOfflineAccess(true);
-      return true;
-    };
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-        localStorage.setItem(
-          OFFLINE_USER_KEY,
-          JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
-        );
-      } else {
-        restoreOfflineAccess();
-      }
-      setLoading(false);
-    }).catch(() => {
-      restoreOfflineAccess();
-      setLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession);
-      setUser((nextSession == null ? void 0 : nextSession.user) ?? null);
-      setOfflineAccess(false);
-      if (nextSession) {
-        localStorage.setItem(
-          OFFLINE_USER_KEY,
-          JSON.stringify({ id: nextSession.user.id, email: nextSession.user.email ?? null })
-        );
-      } else if (event === "SIGNED_OUT") {
-        localStorage.removeItem(OFFLINE_USER_KEY);
-        localStorage.removeItem(LAST_ACTIVITY_KEY);
-      }
-      setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  reactExports.useEffect(() => {
-    if (!session && !offlineAccess) return;
-    const signOutForInactivity = () => {
-      localStorage.removeItem(OFFLINE_USER_KEY);
-      localStorage.removeItem(LAST_ACTIVITY_KEY);
-      setOfflineAccess(false);
-      void supabase.auth.signOut({ scope: "local" });
-    };
-    const checkIdle = () => {
-      const elapsed = Date.now() - lastActivityRef.current;
-      if (elapsed >= IDLE_TIMEOUT_MS) {
-        signOutForInactivity();
-        return;
-      }
-      timer = window.setTimeout(checkIdle, IDLE_TIMEOUT_MS - elapsed);
-    };
-    const recordActivity = () => {
-      const now = Date.now();
-      if (now - lastActivityRef.current >= 6e4) {
-        lastActivityRef.current = now;
-        localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
-      }
-      window.clearTimeout(timer);
-      checkIdle();
-    };
-    let timer;
-    const previousActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY));
-    lastActivityRef.current = previousActivity || Date.now();
-    if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
-      signOutForInactivity();
-      return;
-    }
-    if (!previousActivity) localStorage.setItem(LAST_ACTIVITY_KEY, String(lastActivityRef.current));
-    checkIdle();
-    window.addEventListener("pointerdown", recordActivity);
-    window.addEventListener("keydown", recordActivity);
-    window.addEventListener("touchstart", recordActivity);
-    document.addEventListener("visibilitychange", recordActivity);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("pointerdown", recordActivity);
-      window.removeEventListener("keydown", recordActivity);
-      window.removeEventListener("touchstart", recordActivity);
-      document.removeEventListener("visibilitychange", recordActivity);
-    };
-  }, [session, offlineAccess]);
-  const signUp = async (email, password) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error: error.message };
-    setUser((await supabase.auth.getUser()).data.user ?? null);
-    return { error: null };
-  };
-  const signIn = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: (error == null ? void 0 : error.message) ?? null };
-  };
-  const embeddedCheck = (forSetup) => {
-    if (typeof PublicKeyCredential === "undefined") return "This device or browser does not support passkeys.";
-    if (window.self !== window.top) {
-      return `Biometric ${forSetup ? "setup" : "unlock"} cannot run inside an embedded preview — the browser blocks fingerprint scans there. Open the app at its published address (not the preview) to ${forSetup ? "set it up" : "use it"} on this device.`;
-    }
-    return null;
-  };
-  const signInWithPasskey = async () => {
-    const blocked = embeddedCheck(false);
-    if (blocked) return { error: blocked };
-    try {
-      const { error } = await supabase.auth.signInWithPasskey();
-      return { error: (error == null ? void 0 : error.message) ?? null };
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : "Biometric sign-in failed on this device." };
-    }
-  };
-  const registerPasskey = async () => {
-    const blocked = embeddedCheck(true);
-    if (blocked) return { error: blocked };
-    try {
-      const { error } = await supabase.auth.registerPasskey();
-      if (error) return { error: error.message };
-      localStorage.setItem(PASSKEY_FLAG, "1");
-      setHasPasskey(true);
-      return { error: null };
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : "Biometric setup failed on this device." };
-    }
-  };
-  const setupLocalPin = (pin) => {
-    void (async () => {
-      const hash = await hashPin(pin);
-      localStorage.setItem(PIN_KEY, hash);
-      setHasLocalPin(true);
-    })();
-  };
-  const unlockWithLocalPin = (pin) => {
-    return pin.length >= 4;
-  };
-  const clearLocalPin = () => {
-    localStorage.removeItem(PIN_KEY);
-    setHasLocalPin(false);
-  };
-  const signOut = async () => {
-    await supabase.auth.signOut({ scope: "local" });
-    setSession(null);
-    setUser(null);
-    setOfflineAccess(false);
-    localStorage.removeItem(OFFLINE_USER_KEY);
-    localStorage.removeItem(LAST_ACTIVITY_KEY);
-  };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    AuthContext.Provider,
-    {
-      value: {
-        session,
-        user,
-        loading,
-        offlineAccess,
-        signUp,
-        signIn,
-        signInWithPasskey,
-        registerPasskey,
-        setupLocalPin,
-        unlockWithLocalPin,
-        hasLocalPin,
-        clearLocalPin,
-        signOut,
-        hasPasskey
-      },
-      children
-    }
-  );
-}
-function useAuth() {
-  const ctx = reactExports.useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
-}
-function Modal({ open, onClose, title, children }) {
-  if (!open) return null;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "fixed inset-0 z-50 flex items-end sm:items-center justify-center", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-ink-900/40 backdrop-blur-sm", onClick: onClose }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-6 max-h-[85vh] overflow-y-auto animate-pop-in", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-xl font-semibold text-ink-800", children: title }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: onClose,
-            className: "p-1.5 rounded-full text-ink-500 hover:bg-cream-100 hover:text-ink-700 transition-colors",
-            "aria-label": "Close",
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 18 })
-          }
-        )
-      ] }),
-      children
-    ] })
-  ] });
-}
-function EmptyState({ icon, title, hint }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center py-16 text-center", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl bg-cream-100 flex items-center justify-center text-ink-500 mb-4", children: icon }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-lg font-medium text-ink-700", children: title }),
-    hint && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 mt-1 max-w-xs leading-relaxed", children: hint })
-  ] });
-}
-function SectionHeader({ title, subtitle, action }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-4 mb-6", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-2xl sm:text-3xl font-semibold text-ink-800", children: title }),
-      subtitle && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 mt-1", children: subtitle })
-    ] }),
-    action
-  ] });
-}
-function Button({ variant = "primary", size = "md", className, ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "button",
-    {
-      className: cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none",
-        size === "sm" ? "text-xs px-3 py-1.5" : "text-sm px-4 py-2.5",
-        variant === "primary" && "bg-sage-600 text-white hover:bg-sage-700 active:scale-[0.98]",
-        variant === "secondary" && "bg-cream-100 text-ink-700 hover:bg-cream-200 active:scale-[0.98]",
-        variant === "ghost" && "text-ink-500 hover:bg-cream-100 hover:text-ink-700",
-        variant === "danger" && "text-rose-soft-600 hover:bg-rose-soft-100",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function Input({ className, ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "input",
-    {
-      className: cn(
-        "w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-800 placeholder:text-ink-500/60 focus:outline-none focus:ring-2 focus:ring-sage-300 focus:border-transparent transition-shadow",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function Textarea({ className, ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "textarea",
-    {
-      className: cn(
-        "w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-800 placeholder:text-ink-500/60 focus:outline-none focus:ring-2 focus:ring-sage-300 focus:border-transparent transition-shadow resize-y",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function Label({ children }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs font-semibold text-ink-600 mb-1.5 uppercase tracking-wide", children });
-}
-function SignInScreen() {
-  const { signIn, signUp, signInWithPasskey } = useAuth();
-  const [mode, setMode] = reactExports.useState("signin");
-  const [email, setEmail] = reactExports.useState("");
-  const [password, setPassword] = reactExports.useState("");
-  const [confirm, setConfirm] = reactExports.useState("");
-  const [error, setError] = reactExports.useState("");
-  const [busy, setBusy] = reactExports.useState(false);
-  const [showPassword, setShowPassword] = reactExports.useState(false);
-  const [showConfirm, setShowConfirm] = reactExports.useState(false);
-  const submit = async () => {
-    setError("");
-    if (!email.trim() || !password) {
-      setError("Enter your email and a password.");
-      return;
-    }
-    if (mode === "signup" && password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    setBusy(true);
-    const emailValue = email.trim().toLowerCase();
-    const result = mode === "signin" ? await signIn(emailValue, password) : await signUp(emailValue, password);
-    setBusy(false);
-    if (result.error) {
-      const msg = result.error.toLowerCase();
-      if (msg.includes("invalid login credentials")) {
-        setError("Wrong email or password. Check that your phone didn't auto-capitalize the first letter or add a space.");
-      } else {
-        setError(result.error);
-      }
-    }
-  };
-  const passkey = async () => {
-    setError("");
-    const result = await signInWithPasskey();
-    if (result.error) setError(result.error);
-  };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center px-4 py-10", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full max-w-sm bg-white rounded-3xl border border-cream-200 p-8 shadow-sm", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center mb-8", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl bg-sage-600 flex items-center justify-center mb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Feather, { size: 26, className: "text-white" }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-2xl font-semibold text-ink-800", children: "Life Hub" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 mt-1 text-center", children: "Your private journal, planner, and wellbeing space" })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex rounded-xl bg-cream-100 p-1 mb-6", children: ["signin", "signup"].map((m) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "button",
-      {
-        onClick: () => {
-          setMode(m);
-          setError("");
-        },
-        className: `flex-1 rounded-lg py-2 text-sm font-medium transition-all duration-200 ${mode === m ? "bg-white text-ink-800 shadow-sm" : "text-ink-500 hover:text-ink-700"}`,
-        children: m === "signin" ? "Sign in" : "Create account"
-      },
-      m
-    )) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "form",
-      {
-        onSubmit: (e) => {
-          e.preventDefault();
-          void submit();
-        },
-        className: "space-y-4",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Email" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Input,
-              {
-                type: "email",
-                inputMode: "email",
-                autoComplete: "email",
-                autoCapitalize: "none",
-                autoCorrect: "off",
-                spellCheck: false,
-                value: email,
-                onChange: (e) => setEmail(e.target.value),
-                placeholder: "you@example.com"
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Password" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Input,
-                {
-                  type: showPassword ? "text" : "password",
-                  autoComplete: mode === "signin" ? "current-password" : "new-password",
-                  autoCapitalize: "none",
-                  autoCorrect: "off",
-                  spellCheck: false,
-                  value: password,
-                  onChange: (e) => setPassword(e.target.value),
-                  placeholder: "At least 6 characters",
-                  className: "pr-10"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  type: "button",
-                  onClick: () => setShowPassword(!showPassword),
-                  className: "absolute right-3 top-1/2 -translate-y-1/2 text-ink-500/60 hover:text-ink-700 transition-colors",
-                  "aria-label": showPassword ? "Hide password" : "Show password",
-                  tabIndex: -1,
-                  children: showPassword ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { size: 16 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { size: 16 })
-                }
-              )
-            ] })
-          ] }),
-          mode === "signup" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Confirm password" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Input,
-                {
-                  type: showConfirm ? "text" : "password",
-                  autoComplete: "new-password",
-                  autoCapitalize: "none",
-                  autoCorrect: "off",
-                  spellCheck: false,
-                  value: confirm,
-                  onChange: (e) => setConfirm(e.target.value),
-                  placeholder: "Repeat your password",
-                  className: "pr-10"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  type: "button",
-                  onClick: () => setShowConfirm(!showConfirm),
-                  className: "absolute right-3 top-1/2 -translate-y-1/2 text-ink-500/60 hover:text-ink-700 transition-colors",
-                  "aria-label": showConfirm ? "Hide password" : "Show password",
-                  tabIndex: -1,
-                  children: showConfirm ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { size: 16 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { size: 16 })
-                }
-              )
-            ] })
-          ] }),
-          error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3", children: error }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { type: "submit", className: "w-full", disabled: busy, children: busy ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account" })
-        ]
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 my-6", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-cream-200" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] uppercase tracking-widest text-ink-500/70", children: "or" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-cream-200" })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { variant: "secondary", className: "w-full", onClick: () => void passkey(), children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Fingerprint, { size: 16 }),
-      " Unlock with biometrics"
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-ink-500/70 text-center mt-6 leading-relaxed", children: "Biometric unlock uses a device passkey. Set one up after signing in from your profile page." })
-  ] }) });
-}
 const QUEUE_KEY = "lifehub:sync-queue";
 const cacheKey = (table) => `lifehub:cache:${table}`;
 function readLocal(table) {
   try {
-    return JSON.parse(localStorage.getItem(cacheKey(table)) || "[]");
+    const parsed = JSON.parse(getStoredValue(cacheKey(table)) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter((row) => typeof row === "object" && row !== null && !Array.isArray(row)) : [];
   } catch {
     return [];
   }
 }
 function writeLocal(table, rows) {
   try {
-    localStorage.setItem(cacheKey(table), JSON.stringify(rows));
+    setStoredValue(cacheKey(table), JSON.stringify(rows));
   } catch {
   }
 }
 function readQueue() {
   try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+    const parsed = JSON.parse(getStoredValue(QUEUE_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter(
+      (item) => typeof item === "object" && item !== null && "table" in item && typeof item.table === "string" && "kind" in item && (item.kind === "insert" || item.kind === "update" || item.kind === "delete") && "row" in item && typeof item.row === "object" && item.row !== null
+    ) : [];
   } catch {
     return [];
   }
 }
 function writeQueue(items) {
   try {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
+    setStoredValue(QUEUE_KEY, JSON.stringify(items));
   } catch {
   }
 }
@@ -31788,6 +31327,21 @@ async function runRemote(item) {
 function looksOffline(e) {
   const msg = e instanceof Error ? e.message : String(e);
   return typeof navigator !== "undefined" && !navigator.onLine || /fetch|network|load failed|timed? ?out|failed to fetch/i.test(msg);
+}
+async function checkBackendConnectivity() {
+  const url = "https://qzedfywxgkomssiliueu.supabase.co";
+  const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZWRmeXd4Z2tvbXNzaWxpdWV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyOTQ2NTIsImV4cCI6MjEwNzg3MDY1Mn0.YmVCCTBeJdcF0jutaSDCxkEg-YyWBJW_1TjUi-SWvkI";
+  if (!navigator.onLine || !url || !anonKey) return false;
+  try {
+    const response = await fetch(`${url}/auth/v1/health`, {
+      headers: { apikey: anonKey },
+      cache: "no-store",
+      signal: AbortSignal.timeout(5e3)
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 async function remoteOrQueue(item) {
   writeLocalForItem(item);
@@ -32332,6 +31886,25 @@ async function addShoppingItem(entry) {
 async function setShoppingBought(id, bought) {
   await remoteOrQueue({ table: "shopping_list", kind: "update", row: { id }, changes: { bought } });
 }
+async function recordShoppingPurchase(item) {
+  if (item.bought) return;
+  const budgetItems = await listBudgetItems();
+  if (!budgetItems.some((budgetItem) => budgetItem.id === item.id)) {
+    await remoteOrQueue({
+      table: "budget_items",
+      kind: "insert",
+      row: {
+        id: item.id,
+        kind: "expense",
+        amount: Math.max(0, Math.round(item.est_cost)),
+        category: "Shopping",
+        note: `${item.name}${item.quantity ? ` · ${item.quantity}` : ""}`,
+        item_date: todayISO()
+      }
+    });
+  }
+  await setShoppingBought(item.id, true);
+}
 async function deleteShoppingItem(id) {
   await remoteOrQueue({ table: "shopping_list", kind: "delete", row: { id } });
 }
@@ -32356,6 +31929,467 @@ async function addBudgetItem(entry) {
 async function deleteBudgetItem(id) {
   await remoteOrQueue({ table: "budget_items", kind: "delete", row: { id } });
 }
+const AuthContext = reactExports.createContext(null);
+const PASSKEY_FLAG = "lifehub:has-passkey";
+const PIN_KEY = "lifehub:local-pin";
+const OFFLINE_USER_KEY = "lifehub:offline-user";
+const LAST_ACTIVITY_KEY = "lifehub:last-activity";
+const IDLE_TIMEOUT_MS = 30 * 60 * 1e3;
+function readOfflineUser() {
+  try {
+    const cached = JSON.parse(getStoredValue(OFFLINE_USER_KEY) ?? "null");
+    if (typeof cached === "object" && cached !== null && "id" in cached && typeof cached.id === "string" && "email" in cached && (typeof cached.email === "string" || cached.email === null)) {
+      return { id: cached.id, email: cached.email ?? void 0 };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+async function hashPin(pin) {
+  const data = new TextEncoder().encode(pin);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function AuthProvider({ children }) {
+  const [session, setSession] = reactExports.useState(null);
+  const [user, setUser] = reactExports.useState(null);
+  const [loading, setLoading] = reactExports.useState(true);
+  const [offlineAccess, setOfflineAccess] = reactExports.useState(false);
+  const lastActivityRef = reactExports.useRef(0);
+  const [hasPasskey, setHasPasskey] = reactExports.useState(() => getStoredValue(PASSKEY_FLAG) === "1");
+  const [hasLocalPin, setHasLocalPin] = reactExports.useState(() => getStoredValue(PIN_KEY) !== null);
+  reactExports.useEffect(() => {
+    const restoreOfflineAccess = async () => {
+      const cachedUser = readOfflineUser();
+      if (!cachedUser || await checkBackendConnectivity()) return false;
+      setSession(null);
+      setUser(cachedUser);
+      setOfflineAccess(true);
+      return true;
+    };
+    void supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        setStoredValue(
+          OFFLINE_USER_KEY,
+          JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
+        );
+      } else {
+        await restoreOfflineAccess();
+      }
+      setLoading(false);
+    }).catch(async () => {
+      await restoreOfflineAccess();
+      setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      setSession(nextSession);
+      setUser((nextSession == null ? void 0 : nextSession.user) ?? null);
+      setOfflineAccess(false);
+      if (nextSession) {
+        setStoredValue(
+          OFFLINE_USER_KEY,
+          JSON.stringify({ id: nextSession.user.id, email: nextSession.user.email ?? null })
+        );
+      } else if (event === "SIGNED_OUT") {
+        removeStoredValue(OFFLINE_USER_KEY);
+        removeStoredValue(LAST_ACTIVITY_KEY);
+      }
+      setLoading(false);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  reactExports.useEffect(() => {
+    if (!session && !offlineAccess) return;
+    const signOutForInactivity = () => {
+      removeStoredValue(OFFLINE_USER_KEY);
+      removeStoredValue(LAST_ACTIVITY_KEY);
+      setOfflineAccess(false);
+      void supabase.auth.signOut({ scope: "local" });
+    };
+    const checkIdle = () => {
+      const elapsed = Date.now() - lastActivityRef.current;
+      if (elapsed >= IDLE_TIMEOUT_MS) {
+        signOutForInactivity();
+        return;
+      }
+      timer = window.setTimeout(checkIdle, IDLE_TIMEOUT_MS - elapsed);
+    };
+    const recordActivity = () => {
+      const now = Date.now();
+      if (now - lastActivityRef.current >= 6e4) {
+        lastActivityRef.current = now;
+        setStoredValue(LAST_ACTIVITY_KEY, String(now));
+      }
+      window.clearTimeout(timer);
+      checkIdle();
+    };
+    let timer;
+    const previousActivity = Number(getStoredValue(LAST_ACTIVITY_KEY));
+    lastActivityRef.current = previousActivity || Date.now();
+    if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+      signOutForInactivity();
+      return;
+    }
+    if (!previousActivity) setStoredValue(LAST_ACTIVITY_KEY, String(lastActivityRef.current));
+    checkIdle();
+    window.addEventListener("pointerdown", recordActivity);
+    window.addEventListener("keydown", recordActivity);
+    window.addEventListener("touchstart", recordActivity);
+    document.addEventListener("visibilitychange", recordActivity);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", recordActivity);
+      window.removeEventListener("keydown", recordActivity);
+      window.removeEventListener("touchstart", recordActivity);
+      document.removeEventListener("visibilitychange", recordActivity);
+    };
+  }, [session, offlineAccess]);
+  const signUp = async (email, password) => {
+    try {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) return { error: error.message };
+      setUser((await supabase.auth.getUser()).data.user ?? null);
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Account creation failed." };
+    }
+  };
+  const signIn = async (email, password) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: (error == null ? void 0 : error.message) ?? null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Sign-in failed." };
+    }
+  };
+  const embeddedCheck = (forSetup) => {
+    if (typeof PublicKeyCredential === "undefined") return "This device or browser does not support passkeys.";
+    if (window.self !== window.top) {
+      return `Biometric ${forSetup ? "setup" : "unlock"} cannot run inside an embedded preview — the browser blocks fingerprint scans there. Open the app at its published address (not the preview) to ${forSetup ? "set it up" : "use it"} on this device.`;
+    }
+    return null;
+  };
+  const signInWithPasskey = async () => {
+    const blocked = embeddedCheck(false);
+    if (blocked) return { error: blocked };
+    try {
+      const { error } = await supabase.auth.signInWithPasskey();
+      return { error: (error == null ? void 0 : error.message) ?? null };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Biometric sign-in failed on this device." };
+    }
+  };
+  const registerPasskey = async () => {
+    const blocked = embeddedCheck(true);
+    if (blocked) return { error: blocked };
+    try {
+      const { error } = await supabase.auth.registerPasskey();
+      if (error) return { error: error.message };
+      setStoredValue(PASSKEY_FLAG, "1");
+      setHasPasskey(true);
+      return { error: null };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Biometric setup failed on this device." };
+    }
+  };
+  const setupLocalPin = async (pin) => {
+    const hash = await hashPin(pin);
+    setStoredValue(PIN_KEY, hash);
+    setHasLocalPin(true);
+  };
+  const unlockWithLocalPin = async (pin) => {
+    return verifyLocalPin(pin);
+  };
+  const clearLocalPin = () => {
+    removeStoredValue(PIN_KEY);
+    setHasLocalPin(false);
+  };
+  const signOut = async () => {
+    await supabase.auth.signOut({ scope: "local" });
+    setSession(null);
+    setUser(null);
+    setOfflineAccess(false);
+    removeStoredValue(OFFLINE_USER_KEY);
+    removeStoredValue(LAST_ACTIVITY_KEY);
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    AuthContext.Provider,
+    {
+      value: {
+        session,
+        user,
+        loading,
+        offlineAccess,
+        signUp,
+        signIn,
+        signInWithPasskey,
+        registerPasskey,
+        setupLocalPin,
+        unlockWithLocalPin,
+        hasLocalPin,
+        clearLocalPin,
+        signOut,
+        hasPasskey
+      },
+      children
+    }
+  );
+}
+function useAuth() {
+  const ctx = reactExports.useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
+}
+async function verifyLocalPin(pin) {
+  const stored = getStoredValue(PIN_KEY);
+  if (!stored) return false;
+  const hash = await hashPin(pin);
+  return hash === stored;
+}
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "fixed inset-0 z-50 flex items-end sm:items-center justify-center", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-ink-900/40 backdrop-blur-sm", onClick: onClose }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-6 max-h-[85vh] overflow-y-auto animate-pop-in", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-xl font-semibold text-ink-800", children: title }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: onClose,
+            className: "p-1.5 rounded-full text-ink-500 hover:bg-cream-100 hover:text-ink-700 transition-colors",
+            "aria-label": "Close",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 18 })
+          }
+        )
+      ] }),
+      children
+    ] })
+  ] });
+}
+function EmptyState({ icon, title, hint }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center py-16 text-center", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl bg-cream-100 flex items-center justify-center text-ink-500 mb-4", children: icon }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-lg font-medium text-ink-700", children: title }),
+    hint && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 mt-1 max-w-xs leading-relaxed", children: hint })
+  ] });
+}
+function SectionHeader({ title, subtitle, action }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-4 mb-6", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-2xl sm:text-3xl font-semibold text-ink-800", children: title }),
+      subtitle && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 mt-1", children: subtitle })
+    ] }),
+    action
+  ] });
+}
+function Button({ variant = "primary", size = "md", className, ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "button",
+    {
+      className: cn(
+        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none",
+        size === "sm" ? "text-xs px-3 py-1.5" : "text-sm px-4 py-2.5",
+        variant === "primary" && "bg-sage-600 text-white hover:bg-sage-700 active:scale-[0.98]",
+        variant === "secondary" && "bg-cream-100 text-ink-700 hover:bg-cream-200 active:scale-[0.98]",
+        variant === "ghost" && "text-ink-500 hover:bg-cream-100 hover:text-ink-700",
+        variant === "danger" && "text-rose-soft-600 hover:bg-rose-soft-100",
+        className
+      ),
+      ...props
+    }
+  );
+}
+function Input({ className, ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "input",
+    {
+      className: cn(
+        "w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-800 placeholder:text-ink-500/60 focus:outline-none focus:ring-2 focus:ring-sage-300 focus:border-transparent transition-shadow",
+        className
+      ),
+      ...props
+    }
+  );
+}
+function Textarea({ className, ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "textarea",
+    {
+      className: cn(
+        "w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-800 placeholder:text-ink-500/60 focus:outline-none focus:ring-2 focus:ring-sage-300 focus:border-transparent transition-shadow resize-y",
+        className
+      ),
+      ...props
+    }
+  );
+}
+function Label({ children }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs font-semibold text-ink-600 mb-1.5 uppercase tracking-wide", children });
+}
+function SignInScreen() {
+  const { signIn, signUp, signInWithPasskey } = useAuth();
+  const [mode, setMode] = reactExports.useState("signin");
+  const [email, setEmail] = reactExports.useState("");
+  const [password, setPassword] = reactExports.useState("");
+  const [confirm, setConfirm] = reactExports.useState("");
+  const [error, setError] = reactExports.useState("");
+  const [busy, setBusy] = reactExports.useState(false);
+  const [showPassword, setShowPassword] = reactExports.useState(false);
+  const [showConfirm, setShowConfirm] = reactExports.useState(false);
+  const submit = async () => {
+    setError("");
+    if (!email.trim() || !password) {
+      setError("Enter your email and a password.");
+      return;
+    }
+    if (mode === "signup" && password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    const emailValue = email.trim().toLowerCase();
+    const result = mode === "signin" ? await signIn(emailValue, password) : await signUp(emailValue, password);
+    setBusy(false);
+    if (result.error) {
+      const msg = result.error.toLowerCase();
+      if (msg.includes("invalid login credentials")) {
+        setError("Wrong email or password. Check that your phone didn't auto-capitalize the first letter or add a space.");
+      } else {
+        setError(result.error);
+      }
+    }
+  };
+  const passkey = async () => {
+    setError("");
+    const result = await signInWithPasskey();
+    if (result.error) setError(result.error);
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center px-4 py-10", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full max-w-sm bg-white rounded-3xl border border-cream-200 p-8 shadow-sm", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center mb-8", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl bg-sage-600 flex items-center justify-center mb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Feather, { size: 26, className: "text-white" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-2xl font-semibold text-ink-800", children: "Life Hub" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 mt-1 text-center", children: "Your private journal, planner, and wellbeing space" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-ink-400 mt-1", children: "v2.01" })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex rounded-xl bg-cream-100 p-1 mb-6", children: ["signin", "signup"].map((m) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "button",
+      {
+        onClick: () => {
+          setMode(m);
+          setError("");
+        },
+        className: `flex-1 rounded-lg py-2 text-sm font-medium transition-all duration-200 ${mode === m ? "bg-white text-ink-800 shadow-sm" : "text-ink-500 hover:text-ink-700"}`,
+        children: m === "signin" ? "Sign in" : "Create account"
+      },
+      m
+    )) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "form",
+      {
+        onSubmit: (e) => {
+          e.preventDefault();
+          void submit();
+        },
+        className: "space-y-4",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Email" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "email",
+                inputMode: "email",
+                autoComplete: "email",
+                autoCapitalize: "none",
+                autoCorrect: "off",
+                spellCheck: false,
+                value: email,
+                onChange: (e) => setEmail(e.target.value),
+                placeholder: "you@example.com"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Password" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  type: showPassword ? "text" : "password",
+                  autoComplete: mode === "signin" ? "current-password" : "new-password",
+                  autoCapitalize: "none",
+                  autoCorrect: "off",
+                  spellCheck: false,
+                  value: password,
+                  onChange: (e) => setPassword(e.target.value),
+                  placeholder: "At least 6 characters",
+                  className: "pr-10"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setShowPassword(!showPassword),
+                  className: "absolute right-3 top-1/2 -translate-y-1/2 text-ink-500/60 hover:text-ink-700 transition-colors",
+                  "aria-label": showPassword ? "Hide password" : "Show password",
+                  tabIndex: -1,
+                  children: showPassword ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { size: 16 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { size: 16 })
+                }
+              )
+            ] })
+          ] }),
+          mode === "signup" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Confirm password" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  type: showConfirm ? "text" : "password",
+                  autoComplete: "new-password",
+                  autoCapitalize: "none",
+                  autoCorrect: "off",
+                  spellCheck: false,
+                  value: confirm,
+                  onChange: (e) => setConfirm(e.target.value),
+                  placeholder: "Repeat your password",
+                  className: "pr-10"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setShowConfirm(!showConfirm),
+                  className: "absolute right-3 top-1/2 -translate-y-1/2 text-ink-500/60 hover:text-ink-700 transition-colors",
+                  "aria-label": showConfirm ? "Hide password" : "Show password",
+                  tabIndex: -1,
+                  children: showConfirm ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { size: 16 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { size: 16 })
+                }
+              )
+            ] })
+          ] }),
+          error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3", children: error }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { type: "submit", className: "w-full", disabled: busy, children: busy ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account" })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 my-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-cream-200" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] uppercase tracking-widest text-ink-500/70", children: "or" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-cream-200" })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { variant: "secondary", className: "w-full", onClick: () => void passkey(), children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Fingerprint, { size: 16 }),
+      " Unlock with biometrics"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-ink-500/70 text-center mt-6 leading-relaxed", children: "Biometric unlock uses a device passkey. Set one up after signing in from your profile page." })
+  ] }) });
+}
 const BACKUP_TABLES = [
   "journal_entries",
   "diary_entries",
@@ -32374,12 +32408,18 @@ const BACKUP_TABLES = [
   "inbox_items"
 ];
 const EXPORT_VERSION = 1;
-async function createBackup() {
+async function createBackup(onProgress) {
+  const total = await countRows();
+  let backedUp = 0;
+  onProgress == null ? void 0 : onProgress({ backedUp, remaining: total, total });
   const data = {};
   for (const table of BACKUP_TABLES) {
     const { data: rows, error } = await supabase.from(table).select("*");
     if (error) throw new Error(`Could not read ${table}: ${error.message}`);
-    data[table] = rows ?? [];
+    const tableRows = rows ?? [];
+    data[table] = tableRows;
+    backedUp += tableRows.length;
+    onProgress == null ? void 0 : onProgress({ backedUp, remaining: Math.max(0, total - backedUp), total });
   }
   return {
     app: "Life Hub",
@@ -32400,8 +32440,11 @@ function downloadBackup(file) {
   a.remove();
   URL.revokeObjectURL(url);
 }
-async function backupToFile() {
-  downloadBackup(await createBackup());
+async function backupToFile(onProgress) {
+  const file = await createBackup(onProgress);
+  downloadBackup(file);
+  const total = Object.values(file.data).reduce((sum, rows) => sum + rows.length, 0);
+  return { backedUp: total, remaining: 0, total };
 }
 async function restoreFromText(text) {
   let parsed;
@@ -32488,7 +32531,7 @@ function compressImage(file, maxSize) {
   });
 }
 function ProfilePage() {
-  const { user, registerPasskey, hasPasskey, setupLocalPin, hasLocalPin, signOut } = useAuth();
+  const { user, registerPasskey, hasPasskey, setupLocalPin, unlockWithLocalPin, hasLocalPin, signOut } = useAuth();
   const [profile, setProfile] = reactExports.useState(null);
   const [loading, setLoading] = reactExports.useState(true);
   const [saving, setSaving] = reactExports.useState(false);
@@ -32496,7 +32539,8 @@ function ProfilePage() {
   const [error, setError] = reactExports.useState("");
   const [restoring, setRestoring] = reactExports.useState(false);
   const [restoreResult, setRestoreResult] = reactExports.useState("");
-  const [rowCount, setRowCount] = reactExports.useState(null);
+  const [backupProgress, setBackupProgress] = reactExports.useState(null);
+  const [backupRunning, setBackupRunning] = reactExports.useState(false);
   const [form, setForm] = reactExports.useState({
     full_name: "",
     avatar_url: "",
@@ -32516,7 +32560,7 @@ function ProfilePage() {
     if (!user) return;
     void (async () => {
       try {
-        const data = await getProfile(user.id);
+        const data = await getProfile(user.id, user.email ?? void 0);
         if (data) {
           setProfile(data);
           setForm({
@@ -32584,6 +32628,20 @@ function ProfilePage() {
     }
   };
   const handlePinSetup = async () => {
+    if (pinMode === "verify") {
+      try {
+        if (!await unlockWithLocalPin(pinInput)) {
+          setPinError("That PIN is not correct.");
+          return;
+        }
+        setPinOpen(false);
+        setPinInput("");
+        setPinError("");
+      } catch {
+        setPinError("Could not verify the PIN on this device.");
+      }
+      return;
+    }
     if (pinInput.length < 4) {
       setPinError("PIN must be at least 4 digits.");
       return;
@@ -32593,30 +32651,30 @@ function ProfilePage() {
         setPinError("PINs do not match.");
         return;
       }
-      setupLocalPin(pinInput);
-      setPinOpen(false);
-      setPinInput("");
-      setPinConfirm("");
-      setPinError("");
+      try {
+        await setupLocalPin(pinInput);
+        setPinOpen(false);
+        setPinInput("");
+        setPinConfirm("");
+        setPinError("");
+      } catch {
+        setPinError("Could not save the PIN on this device.");
+      }
     }
   };
-  reactExports.useEffect(() => {
-    if (!user) return;
-    void (async () => {
-      try {
-        setRowCount(await countRows());
-      } catch {
-        setRowCount(null);
-      }
-    })();
-  }, [user]);
   const doBackup = () => {
     void (async () => {
+      setBackupRunning(true);
+      setBackupProgress(null);
       try {
-        await backupToFile();
+        const progress = await backupToFile(setBackupProgress);
+        setBackupProgress(progress);
         setError("");
       } catch {
         setError("Could not create your backup file. Check your connection and try again.");
+        setBackupProgress(null);
+      } finally {
+        setBackupRunning(false);
       }
     })();
   };
@@ -32630,7 +32688,6 @@ function ProfilePage() {
         setRestoreResult(
           restored > 0 ? `Restored ${restored} item${restored === 1 ? "" : "s"} into your account. Everything you already had was kept.` : "Nothing new to restore - your account already has all of it."
         );
-        setRowCount(await countRows());
         setError("");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not read that backup file.");
@@ -32656,7 +32713,11 @@ function ProfilePage() {
         ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-20 h-20 rounded-2xl bg-sage-500 flex items-center justify-center text-white text-xl font-semibold", children: initials }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-xl font-semibold text-ink-800 truncate", children: form.full_name.trim() || "Unnamed" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 truncate", children: profile.email })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 truncate", children: profile.email }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-ink-500 mt-1", children: [
+            "Member since ",
+            new Date(profile.created_at).toLocaleDateString(void 0, { month: "short", year: "numeric" })
+          ] })
         ] })
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "bg-white rounded-2xl border border-cream-200 p-6 mb-6", children: [
@@ -32761,18 +32822,19 @@ function ProfilePage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "bg-white rounded-2xl border border-cream-200 p-6 mb-6", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-semibold uppercase tracking-widest text-ink-500 mb-2", children: "Backup & restore" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-600 leading-relaxed mb-4", children: "Your entries live in your account, so they follow you to any phone automatically - just sign in. As an extra safety net, you can also save a backup file to your device or bring one back in." }),
-        rowCount !== null && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm font-medium text-sage-600 mb-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { size: 16 }),
-          " ",
-          rowCount,
-          " item",
-          rowCount === 1 ? "" : "s",
-          " safely stored in your account"
+        backupRunning && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm font-medium text-sage-600 mb-4", role: "status", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 16 }),
+          backupProgress ? `${backupProgress.backedUp} items backed up, ${backupProgress.remaining} remaining` : "Preparing your backup..."
+        ] }),
+        !backupRunning && backupProgress && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm font-medium text-sage-600 mb-4", role: "status", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16 }),
+          " All items are backed up."
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { onClick: doBackup, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { onClick: doBackup, disabled: backupRunning, children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { size: 16 }),
-            " Save backup file"
+            " ",
+            backupRunning ? "Backing up..." : "Save backup file"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "cursor-pointer", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium border transition-colors bg-white text-ink-700 border-cream-200 hover:bg-cream-100 w-full sm:w-auto", style: { minHeight: 40 }, children: [
@@ -32816,9 +32878,26 @@ function ProfilePage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx(Fingerprint, { size: 16 }),
           " Set up biometric unlock"
         ] }),
-        hasLocalPin ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm font-medium text-sage-600", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(KeyRound, { size: 16 }),
-          " Local PIN is set up"
+        hasLocalPin ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-sm font-medium text-sage-600", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(KeyRound, { size: 16 }),
+            " Local PIN is set up"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              variant: "ghost",
+              size: "sm",
+              onClick: () => {
+                setPinMode("verify");
+                setPinOpen(true);
+                setPinError("");
+                setPinInput("");
+                setPinConfirm("");
+              },
+              children: "Verify PIN"
+            }
+          )
         ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { variant: "ghost", onClick: () => {
           setPinMode("setup");
           setPinOpen(true);
@@ -32871,13 +32950,22 @@ function ProfilePage() {
         )
       ] }),
       pinError && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3", children: pinError }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: () => void handlePinSetup(), disabled: pinInput.length < 4, className: "w-full", children: pinMode === "setup" ? "Save PIN" : "Unlock" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        Button,
+        {
+          onClick: () => void handlePinSetup(),
+          disabled: pinInput.length < (pinMode === "setup" ? 4 : 1),
+          className: "w-full",
+          children: pinMode === "setup" ? "Save PIN" : "Verify PIN"
+        }
+      )
     ] }) })
   ] });
 }
 function DashboardPage({ onNavigate }) {
   const { user } = useAuth();
-  const [sync, setSync] = reactExports.useState({ active: false, pending: 0 });
+  const [sync, setSync] = reactExports.useState({ pending: 0 });
+  const [apiOnline, setApiOnline] = reactExports.useState(null);
   const [tasks, setTasks] = reactExports.useState([]);
   const [reminders, setReminders] = reactExports.useState([]);
   const [habits, setHabits] = reactExports.useState([]);
@@ -32886,9 +32974,11 @@ function DashboardPage({ onNavigate }) {
   const [intakes, setIntakes] = reactExports.useState([]);
   const [profile, setProfile] = reactExports.useState(null);
   const [loading, setLoading] = reactExports.useState(true);
+  const [waterSaving, setWaterSaving] = reactExports.useState(false);
+  const [waterError, setWaterError] = reactExports.useState("");
   const today = todayISO();
-  const load = async () => {
-    setLoading(true);
+  const load = async (withSkeleton = true) => {
+    if (withSkeleton) setLoading(true);
     try {
       const [allTasks, allReminders, habitsList, logsList, latestMoods, latestWater, profileData] = await Promise.all([
         listDayPlanner(),
@@ -32897,7 +32987,7 @@ function DashboardPage({ onNavigate }) {
         listHabitLogs(),
         listMoods(),
         listWater(),
-        user ? getProfile(user.id) : Promise.resolve(null)
+        user ? getProfile(user.id, user.email ?? void 0) : Promise.resolve(null)
       ]);
       setTasks(allTasks.filter((t) => t.plan_date === today));
       setReminders(allReminders.filter((x) => !x.done).slice(0, 5));
@@ -32914,7 +33004,25 @@ function DashboardPage({ onNavigate }) {
   reactExports.useEffect(() => {
     load();
   }, []);
-  reactExports.useEffect(() => onSyncStatus((active, pending) => setSync({ active, pending })), []);
+  reactExports.useEffect(() => onSyncStatus((_active, pending) => setSync({ pending })), []);
+  reactExports.useEffect(() => {
+    const updateConnectivity = () => {
+      if (!navigator.onLine) {
+        setApiOnline(false);
+        return;
+      }
+      void checkBackendConnectivity().then(setApiOnline);
+    };
+    updateConnectivity();
+    window.addEventListener("online", updateConnectivity);
+    window.addEventListener("offline", updateConnectivity);
+    const interval = window.setInterval(updateConnectivity, 2e4);
+    return () => {
+      window.removeEventListener("online", updateConnectivity);
+      window.removeEventListener("offline", updateConnectivity);
+      window.clearInterval(interval);
+    };
+  }, []);
   const doneCount = tasks.filter((t) => t.done).length;
   const todayMood = moods.find((m) => m.mood_date === today);
   const water = intakes.find((i) => i.intake_date === today);
@@ -32928,13 +33036,18 @@ function DashboardPage({ onNavigate }) {
     }
   };
   const quickWater = async () => {
+    if (waterSaving) return;
+    setWaterSaving(true);
     const next = glasses + 1;
     setIntakes([{ id: "today", intake_date: today, glasses: next, goal }]);
     try {
       await upsertWater(today, next, goal);
+      setWaterError("");
     } catch {
+      setWaterError("Could not update water intake. Please try again.");
     } finally {
-      load();
+      await load(false);
+      setWaterSaving(false);
     }
   };
   const greeting = (() => {
@@ -32955,13 +33068,13 @@ function DashboardPage({ onNavigate }) {
       ] })
     ] }),
     loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3", children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-32 rounded-2xl bg-cream-100 animate-pulse" }, i)) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3", children: [
-      (!sync.active || sync.pending > 0) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      apiOnline === false && /* @__PURE__ */ jsxRuntimeExports.jsx(
         "div",
         {
           className: `sm:col-span-2 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${sync.pending > 0 ? "bg-honey-500/15 text-amber-700" : "bg-cream-100 text-ink-500"}`,
           children: sync.pending > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { size: 15, className: "animate-spin" }),
-            " Working offline — ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { size: 15 }),
+            " Offline — ",
             sync.pending,
             " pending item",
             sync.pending === 1 ? "" : "s",
@@ -33037,14 +33150,16 @@ function DashboardPage({ onNavigate }) {
             Button,
             {
               size: "sm",
+              disabled: waterSaving,
               onClick: (e) => {
                 e.stopPropagation();
-                quickWater();
+                void quickWater();
               },
-              children: "+1 glass"
+              children: waterSaving ? "Saving..." : "+1 glass"
             }
           )
-        ] })
+        ] }),
+        waterError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-xs text-rose-soft-600", role: "alert", children: waterError })
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("section", { className: "mt-3 bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer", onClick: () => onNavigate("mood"), children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
@@ -33109,13 +33224,14 @@ function JournalPage() {
     setSaving(true);
     try {
       await upsertJournal(editing ? { id: editing.id, ...form } : form);
-      setError("");
+      await load();
+      setEditing(null);
+      setForm({ title: "", content: "", mood: "" });
+      setOpen(false);
     } catch {
       setError("Could not save the entry.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      load();
     }
   };
   const remove2 = async (id) => {
@@ -33170,7 +33286,7 @@ function JournalPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "font-display text-lg font-semibold text-ink-800 truncate", children: entry.title || "Untitled" }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-ink-500 mt-0.5", children: [
-                formatDay(entry.created_at.slice(0, 10)),
+                formatDay((entry.created_at || (/* @__PURE__ */ new Date()).toISOString()).slice(0, 10)),
                 entry.mood && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ml-2 text-sage-600 font-medium", children: entry.mood })
               ] })
             ] }),
@@ -33184,44 +33300,56 @@ function JournalPage() {
       },
       entry.id
     )) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: editing ? "Edit entry" : "New journal entry", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Title" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
-          {
-            value: form.title,
-            onChange: (e) => setForm({ ...form, title: e.target.value }),
-            placeholder: "Give it a name..."
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Mood" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: MOODS.map((m) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => setForm({ ...form, mood: m }),
-            className: `px-3 py-1.5 rounded-full text-xs font-medium transition-all ${form.mood === m ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"}`,
-            children: m || "None"
-          },
-          m || "none"
-        )) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Entry" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Textarea,
-          {
-            rows: 7,
-            value: form.content,
-            onChange: (e) => setForm({ ...form, content: e.target.value }),
-            placeholder: "Write freely..."
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: saving || !form.content.trim(), className: "w-full", children: saving ? "Saving..." : editing ? "Save changes" : "Save entry" })
-    ] }) })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Modal,
+      {
+        open,
+        onClose: () => {
+          setOpen(false);
+          setEditing(null);
+          setForm({ title: "", content: "", mood: "" });
+        },
+        title: editing ? "Edit entry" : "New journal entry",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Title" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: form.title,
+                onChange: (e) => setForm({ ...form, title: e.target.value }),
+                placeholder: "Give it a name..."
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Mood" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: MOODS.map((m) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: () => setForm({ ...form, mood: m }),
+                className: `px-3 py-1.5 rounded-full text-xs font-medium transition-all ${form.mood === m ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"}`,
+                children: m || "None"
+              },
+              m || "none"
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Entry" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Textarea,
+              {
+                rows: 7,
+                value: form.content,
+                onChange: (e) => setForm({ ...form, content: e.target.value }),
+                placeholder: "Write freely..."
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: saving || !form.content.trim(), className: "w-full", children: saving ? "Saving..." : editing ? "Save changes" : "Save entry" })
+        ] })
+      }
+    )
   ] });
 }
 function DiaryPage() {
@@ -33257,15 +33385,16 @@ function DiaryPage() {
     setSelectedDate(iso);
   };
   const save = async () => {
+    if (!content.trim()) return;
     setSaving(true);
     try {
       await upsertDiary(selectedDate, content, entryId);
       setError("");
+      await load();
     } catch {
       setError("Could not save the page.");
     } finally {
       setSaving(false);
-      await load();
     }
   };
   const remove2 = async () => {
@@ -33407,13 +33536,15 @@ function NotesPage() {
         content: form.content,
         category: form.category
       });
+      setEditing(null);
+      setForm(emptyDraft);
+      setOpen(false);
       setError("");
+      await load();
     } catch {
       setError("Could not save the note.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      load();
     }
   };
   const togglePin = async (note) => {
@@ -33669,62 +33800,74 @@ function NotesPage() {
         note.id
       );
     }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: editing ? "Edit note" : "New note", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Category" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap gap-2", children: [
-          CATEGORIES$1.filter((c) => c !== "private").map((c) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              type: "button",
-              onClick: () => setForm({ ...form, category: c }),
-              className: cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                form.category === c ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
-              ),
-              children: CATEGORY_LABEL[c]
-            },
-            c
-          )),
-          privateUnlocked && /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              type: "button",
-              onClick: () => setForm({ ...form, category: "private" }),
-              className: cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                form.category === "private" ? "bg-rose-soft-500 text-white" : "bg-rose-soft-100 text-rose-soft-700 hover:bg-rose-soft-200"
-              ),
-              children: CATEGORY_LABEL.private
-            }
-          )
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Modal,
+      {
+        open,
+        onClose: () => {
+          setOpen(false);
+          setEditing(null);
+          setForm(emptyDraft);
+        },
+        title: editing ? "Edit note" : "New note",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Category" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap gap-2", children: [
+              CATEGORIES$1.filter((c) => c !== "private").map((c) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setForm({ ...form, category: c }),
+                  className: cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                    form.category === c ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
+                  ),
+                  children: CATEGORY_LABEL[c]
+                },
+                c
+              )),
+              privateUnlocked && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setForm({ ...form, category: "private" }),
+                  className: cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                    form.category === "private" ? "bg-rose-soft-500 text-white" : "bg-rose-soft-100 text-rose-soft-700 hover:bg-rose-soft-200"
+                  ),
+                  children: CATEGORY_LABEL.private
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Title" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: form.title,
+                onChange: (e) => setForm({ ...form, title: e.target.value }),
+                placeholder: "Note title..."
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Note" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Textarea,
+              {
+                rows: 6,
+                value: form.content,
+                onChange: (e) => setForm({ ...form, content: e.target.value }),
+                placeholder: "Write it down..."
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: saving, className: "w-full", children: saving ? "Saving..." : editing ? "Save changes" : "Save note" })
         ] })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Title" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
-          {
-            value: form.title,
-            onChange: (e) => setForm({ ...form, title: e.target.value }),
-            placeholder: "Note title..."
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Note" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Textarea,
-          {
-            rows: 6,
-            value: form.content,
-            onChange: (e) => setForm({ ...form, content: e.target.value }),
-            placeholder: "Write it down..."
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: saving, className: "w-full", children: saving ? "Saving..." : editing ? "Save changes" : "Save note" })
-    ] }) }),
+      }
+    ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open: unlockOpen, onClose: () => {
       setUnlockOpen(false);
       setUnlockInput("");
@@ -33846,11 +33989,11 @@ function DayPlansPage() {
     try {
       await addDayPlannerTask(newTask.trim(), date);
       setError("");
+      setNewTask("");
+      await load();
     } catch {
       setError("Could not add the task.");
     }
-    setNewTask("");
-    load();
   };
   const toggle = async (task) => {
     try {
@@ -34012,12 +34155,14 @@ function RemindersPage() {
     try {
       await upsertReminder(editing ? { id: editing.id, ...payload } : payload);
       setError("");
+      setForm({ title: "", notes: "", due_at: "" });
+      setEditing(null);
+      setOpen(false);
+      await load();
     } catch {
       setError("Could not save the reminder.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      load();
     }
   };
   const toggleDone = async (reminder) => {
@@ -34112,44 +34257,56 @@ function RemindersPage() {
         )) })
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: editing ? "Edit reminder" : "New reminder", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Title" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
-          {
-            value: form.title,
-            onChange: (e) => setForm({ ...form, title: e.target.value }),
-            placeholder: "What should you remember?"
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "When" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "input",
-          {
-            type: "datetime-local",
-            value: form.due_at,
-            onChange: (e) => setForm({ ...form, due_at: e.target.value }),
-            className: "w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-sage-300"
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Notes" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Textarea,
-          {
-            rows: 3,
-            value: form.notes,
-            onChange: (e) => setForm({ ...form, notes: e.target.value }),
-            placeholder: "Optional details..."
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: saving || !form.title.trim(), className: "w-full", children: saving ? "Saving..." : editing ? "Save changes" : "Save reminder" })
-    ] }) })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Modal,
+      {
+        open,
+        onClose: () => {
+          setOpen(false);
+          setEditing(null);
+          setForm({ title: "", notes: "", due_at: "" });
+        },
+        title: editing ? "Edit reminder" : "New reminder",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Title" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: form.title,
+                onChange: (e) => setForm({ ...form, title: e.target.value }),
+                placeholder: "What should you remember?"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "When" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "input",
+              {
+                type: "datetime-local",
+                value: form.due_at,
+                onChange: (e) => setForm({ ...form, due_at: e.target.value }),
+                className: "w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-sage-300"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Notes" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Textarea,
+              {
+                rows: 3,
+                value: form.notes,
+                onChange: (e) => setForm({ ...form, notes: e.target.value }),
+                placeholder: "Optional details..."
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: saving || !form.title.trim(), className: "w-full", children: saving ? "Saving..." : editing ? "Save changes" : "Save reminder" })
+        ] })
+      }
+    )
   ] });
 }
 const ICONS = ["💧", "🏃", "📖", "🧘", "🥗", "😴", "🎸", "🧹", "💊", "☀️"];
@@ -34200,13 +34357,13 @@ function HabitsPage() {
     try {
       await createHabit(form);
       setError("");
+      setOpen(false);
+      setForm({ name: "", icon: "💧", color: "sage" });
+      await load();
     } catch {
       setError("Could not create the habit.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      setForm({ name: "", icon: "💧", color: "sage" });
-      load();
     }
   };
   const remove2 = async (habit) => {
@@ -34305,51 +34462,62 @@ function HabitsPage() {
         habit.id
       );
     }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: "New habit", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Name" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
-          {
-            value: form.name,
-            onChange: (e) => setForm({ ...form, name: e.target.value }),
-            placeholder: "e.g. Morning stretch",
-            onKeyDown: (e) => e.key === "Enter" && add()
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Icon" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: ICONS.map((icon) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => setForm({ ...form, icon }),
-            className: cn(
-              "w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all",
-              form.icon === icon ? "bg-sage-100 ring-2 ring-sage-300" : "bg-cream-100 hover:bg-cream-200"
-            ),
-            children: icon
-          },
-          icon
-        )) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Color" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", children: COLORS.map((color) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => setForm({ ...form, color }),
-            className: cn(
-              "w-9 h-9 rounded-full transition-all",
-              colorClasses[color].bg,
-              form.color === color ? "ring-2 ring-offset-2 ring-ink-500/40" : "opacity-60 hover:opacity-100"
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Modal,
+      {
+        open,
+        onClose: () => {
+          setOpen(false);
+          setForm({ name: "", icon: "💧", color: "sage" });
+        },
+        title: "New habit",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Name" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: form.name,
+                onChange: (e) => setForm({ ...form, name: e.target.value }),
+                placeholder: "e.g. Morning stretch",
+                onKeyDown: (e) => e.key === "Enter" && add()
+              }
             )
-          },
-          color
-        )) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: add, disabled: saving || !form.name.trim(), className: "w-full", children: saving ? "Saving..." : "Create habit" })
-    ] }) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Icon" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: ICONS.map((icon) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: () => setForm({ ...form, icon }),
+                className: cn(
+                  "w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all",
+                  form.icon === icon ? "bg-sage-100 ring-2 ring-sage-300" : "bg-cream-100 hover:bg-cream-200"
+                ),
+                children: icon
+              },
+              icon
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Color" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", children: COLORS.map((color) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: () => setForm({ ...form, color }),
+                className: cn(
+                  "w-9 h-9 rounded-full transition-all",
+                  colorClasses[color].bg,
+                  form.color === color ? "ring-2 ring-offset-2 ring-ink-500/40" : "opacity-60 hover:opacity-100"
+                )
+              },
+              color
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: add, disabled: saving || !form.name.trim(), className: "w-full", children: saving ? "Saving..." : "Create habit" })
+        ] })
+      }
+    )
   ] });
 }
 const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snack"];
@@ -34372,8 +34540,18 @@ function addDaysISO(base, offset) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-function MealsPage() {
-  const [tab, setTab] = reactExports.useState("week");
+function MealsPage({
+  activeTab,
+  onTabChange
+}) {
+  const [tab, setTab] = reactExports.useState(activeTab ?? "week");
+  reactExports.useEffect(() => {
+    if (activeTab) setTab(activeTab);
+  }, [activeTab]);
+  const selectTab = (nextTab) => {
+    if (onTabChange) onTabChange(nextTab);
+    else setTab(nextTab);
+  };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "animate-fade-up pb-4", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative overflow-hidden rounded-2xl bg-sage-600 text-white px-5 py-6 mb-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 max-w-[75%]", children: [
@@ -34394,7 +34572,7 @@ function MealsPage() {
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "button",
         {
-          onClick: () => setTab(t.id),
+          onClick: () => selectTab(t.id),
           className: cn(
             "shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all",
             isActive ? "bg-sage-600 text-white shadow-sm" : "bg-white border border-cream-200 text-ink-600 hover:bg-cream-100"
@@ -34469,11 +34647,10 @@ function WeekPlan() {
         cost: item.default_cost
       });
       setError("");
+      setPicker(null);
+      await load();
     } catch {
       setError("Could not add the meal.");
-    } finally {
-      setPicker(null);
-      load();
     }
   };
   const addCustom = async (date, mealType, name, cost) => {
@@ -34481,11 +34658,10 @@ function WeekPlan() {
     try {
       await addMeal({ meal_date: date, meal_type: mealType, name: name.trim(), notes: "", cost });
       setError("");
+      setPicker(null);
+      await load();
     } catch {
       setError("Could not add the meal.");
-    } finally {
-      setPicker(null);
-      load();
     }
   };
   const remove2 = async (id) => {
@@ -34625,15 +34801,10 @@ function MealPicker({
 }) {
   const [customName, setCustomName] = reactExports.useState("");
   const [customCost, setCustomCost] = reactExports.useState("");
-  const matches = library.filter((l) => l.meal_type === mealType);
   return /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open: true, onClose, title: `Add ${mealType} · ${(/* @__PURE__ */ new Date(date + "T12:00:00")).toLocaleDateString(void 0, { weekday: "short", month: "short", day: "numeric" })}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Pick from your meal library" }),
-      matches.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-ink-500", children: [
-        "No saved ",
-        mealType.toLowerCase(),
-        " meals yet. Add one in the Meal Library tab."
-      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-1.5 max-h-56 overflow-y-auto", children: matches.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      library.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-ink-500", children: "No saved meals yet. Add one in the Meal Library tab." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-1.5 max-h-56 overflow-y-auto", children: library.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "button",
         {
           onClick: () => onPick(item),
@@ -34641,6 +34812,7 @@ function MealPicker({
           children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-base", children: item.emoji }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-ink-800 flex-1 truncate", children: item.name }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-ink-500", children: item.meal_type }),
             item.default_cost > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-sage-600 font-medium", children: [
               "KES ",
               item.default_cost.toLocaleString()
@@ -34727,12 +34899,11 @@ function MealLibrary() {
         recipe_id: form.recipe_id || null
       });
       setError("");
-    } catch {
-      setError("Could not save the meal.");
-    } finally {
       setOpen(false);
       setForm({ name: "", meal_type: "Dinner", default_cost: "", emoji: "🍽️", notes: "", recipe_id: "" });
-      load();
+      await load();
+    } catch {
+      setError("Could not save the meal.");
     }
   };
   const remove2 = async (id) => {
@@ -34768,54 +34939,65 @@ function MealLibrary() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => remove2(item.id), className: "text-ink-400 hover:text-rose-soft-600", "aria-label": "Delete", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { size: 14 }) })
       ] }, item.id);
     }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: "New meal", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Name" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { value: form.name, onChange: (e) => setForm({ ...form, name: e.target.value }), placeholder: "e.g. Ugali & Sukuma" })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Meal type" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "select",
-            {
-              value: form.meal_type,
-              onChange: (e) => setForm({ ...form, meal_type: e.target.value }),
-              className: "w-full rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-sage-300",
-              children: MEAL_TYPES.map((t) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: t, children: t }, t))
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Default cost (KES)" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { type: "number", min: 0, value: form.default_cost, onChange: (e) => setForm({ ...form, default_cost: e.target.value }), placeholder: "0" })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Modal,
+      {
+        open,
+        onClose: () => {
+          setOpen(false);
+          setForm({ name: "", meal_type: "Dinner", default_cost: "", emoji: "🍽️", notes: "", recipe_id: "" });
+        },
+        title: "New meal",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Name" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { value: form.name, onChange: (e) => setForm({ ...form, name: e.target.value }), placeholder: "e.g. Ugali & Sukuma" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Meal type" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "select",
+                {
+                  value: form.meal_type,
+                  onChange: (e) => setForm({ ...form, meal_type: e.target.value }),
+                  className: "w-full rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-sage-300",
+                  children: MEAL_TYPES.map((t) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: t, children: t }, t))
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Default cost (KES)" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { type: "number", min: 0, value: form.default_cost, onChange: (e) => setForm({ ...form, default_cost: e.target.value }), placeholder: "0" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Emoji" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { value: form.emoji, onChange: (e) => setForm({ ...form, emoji: e.target.value }), placeholder: "🍽️", maxLength: 4 })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Attach a recipe (optional)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "select",
+              {
+                value: form.recipe_id,
+                onChange: (e) => setForm({ ...form, recipe_id: e.target.value }),
+                className: "w-full rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-sage-300",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "No recipe" }),
+                  recipes.map((r2) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: r2.id, children: r2.title }, r2.id))
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Notes" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Textarea, { rows: 2, value: form.notes, onChange: (e) => setForm({ ...form, notes: e.target.value }), placeholder: "Side dishes, substitutions..." })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: !form.name.trim(), className: "w-full", children: "Save meal" })
         ] })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Emoji" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { value: form.emoji, onChange: (e) => setForm({ ...form, emoji: e.target.value }), placeholder: "🍽️", maxLength: 4 })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Attach a recipe (optional)" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "select",
-          {
-            value: form.recipe_id,
-            onChange: (e) => setForm({ ...form, recipe_id: e.target.value }),
-            className: "w-full rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-sage-300",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "No recipe" }),
-              recipes.map((r2) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: r2.id, children: r2.title }, r2.id))
-            ]
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Notes" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Textarea, { rows: 2, value: form.notes, onChange: (e) => setForm({ ...form, notes: e.target.value }), placeholder: "Side dishes, substitutions..." })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: !form.name.trim(), className: "w-full", children: "Save meal" })
-    ] }) })
+      }
+    )
   ] });
 }
 function Recipes() {
@@ -34849,12 +35031,11 @@ function Recipes() {
         servings: Number(form.servings) || 1
       });
       setError("");
-    } catch {
-      setError("Could not save the recipe.");
-    } finally {
       setOpen(false);
       setForm({ title: "", ingredients: "", instructions: "", servings: "2" });
-      load();
+      await load();
+    } catch {
+      setError("Could not save the recipe.");
     }
   };
   const remove2 = async (id) => {
@@ -34887,25 +35068,36 @@ function Recipes() {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => remove2(r2.id), className: "text-ink-400 hover:text-rose-soft-600", "aria-label": "Delete", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { size: 14 }) })
     ] }) }, r2.id)) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: "New recipe", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Meal name" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { value: form.title, onChange: (e) => setForm({ ...form, title: e.target.value }), placeholder: "e.g. Sukuma Wiki" })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Ingredients" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Textarea, { rows: 4, value: form.ingredients, onChange: (e) => setForm({ ...form, ingredients: e.target.value }), placeholder: "One per line: 1 bunch sukuma, 1 onion, 2 tomatoes..." })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "How to cook" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Textarea, { rows: 5, value: form.instructions, onChange: (e) => setForm({ ...form, instructions: e.target.value }), placeholder: "Step by step instructions..." })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Serves" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { type: "number", min: 1, value: form.servings, onChange: (e) => setForm({ ...form, servings: e.target.value }) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: !form.title.trim(), className: "w-full", children: "Save recipe" })
-    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Modal,
+      {
+        open,
+        onClose: () => {
+          setOpen(false);
+          setForm({ title: "", ingredients: "", instructions: "", servings: "2" });
+        },
+        title: "New recipe",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Meal name" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { value: form.title, onChange: (e) => setForm({ ...form, title: e.target.value }), placeholder: "e.g. Sukuma Wiki" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Ingredients" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Textarea, { rows: 4, value: form.ingredients, onChange: (e) => setForm({ ...form, ingredients: e.target.value }), placeholder: "One per line: 1 bunch sukuma, 1 onion, 2 tomatoes..." })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "How to cook" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Textarea, { rows: 5, value: form.instructions, onChange: (e) => setForm({ ...form, instructions: e.target.value }), placeholder: "Step by step instructions..." })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Serves" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { type: "number", min: 1, value: form.servings, onChange: (e) => setForm({ ...form, servings: e.target.value }) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: !form.title.trim(), className: "w-full", children: "Save recipe" })
+        ] })
+      }
+    ),
     view && /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open: true, onClose: () => setView(null), title: view.title, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-semibold uppercase tracking-widest text-sage-600 mb-1.5", children: "Ingredients" }),
@@ -34951,10 +35143,10 @@ function Pantry() {
       setQuantity("");
       setUnit("");
       setError("");
+      await load();
     } catch {
       setError("Could not add item.");
     }
-    load();
   };
   const toggleNeed = async (item) => {
     try {
@@ -35053,10 +35245,10 @@ function Shopping() {
       setQuantity("");
       setCost("");
       setError("");
+      await load();
     } catch {
       setError("Could not add item.");
     }
-    load();
   };
   const importFromPantry = async () => {
     const needToBuy = pantry.filter((p) => p.need_to_buy);
@@ -35067,10 +35259,10 @@ function Shopping() {
         await setPantryNeedToBuy(p.id, false);
       }
       setError("");
+      await load();
     } catch {
       setError("Could not import pantry items.");
     }
-    load();
   };
   const toggleBought = async (item) => {
     try {
@@ -35134,7 +35326,7 @@ function BudgetPage() {
   const [error, setError] = reactExports.useState("");
   const [open, setOpen] = reactExports.useState(false);
   const [form, setForm] = reactExports.useState({
-    kind: "expense",
+    type: "expense",
     amount: "",
     category: "Food",
     note: "",
@@ -35159,21 +35351,25 @@ function BudgetPage() {
   const save = async () => {
     const amount = Number(form.amount);
     if (!form.amount.trim() || !Number.isFinite(amount) || amount <= 0) return;
+    if (form.type === "tobuy" && !form.note.trim()) return;
     try {
-      await addBudgetItem({
-        kind: form.kind,
-        amount,
-        category: form.category,
-        note: form.note.trim(),
-        item_date: form.item_date
-      });
+      if (form.type === "tobuy") {
+        await addShoppingItem({ name: form.note.trim(), est_cost: amount });
+      } else {
+        await addBudgetItem({
+          kind: form.type,
+          amount,
+          category: form.category,
+          note: form.note.trim(),
+          item_date: form.item_date
+        });
+      }
       setError("");
+      setOpen(false);
+      setForm({ type: "expense", amount: "", category: "Food", note: "", item_date: todayISO() });
+      await load();
     } catch {
       setError("Could not add the entry.");
-    } finally {
-      setOpen(false);
-      setForm({ kind: "expense", amount: "", category: "Food", note: "", item_date: todayISO() });
-      load();
     }
   };
   const remove2 = async (id) => {
@@ -35188,15 +35384,17 @@ function BudgetPage() {
     let inc = 0, exp = 0;
     for (const item of items) {
       if (item.kind === "income") inc += item.amount;
-      else exp += item.amount;
+      else if (item.kind === "expense") exp += item.amount;
     }
     return { income: inc, expenses: exp, balance: inc - exp };
   }, [items]);
   const stillToBuy = reactExports.useMemo(
-    () => shopping.filter((s) => !s.bought).reduce((sum, s) => sum + s.est_cost, 0),
+    () => shopping.filter((item) => !item.bought).reduce((sum, item) => sum + item.est_cost, 0),
     [shopping]
   );
   const remainingAfterBuying = balance - stillToBuy;
+  const plannedItems = shopping.filter((item) => !item.bought);
+  const completedItems = items;
   const byCategory = reactExports.useMemo(() => {
     const map = /* @__PURE__ */ new Map();
     for (const item of items) {
@@ -35227,7 +35425,7 @@ function BudgetPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-semibold uppercase tracking-widest text-ink-500", children: "Income" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "font-display text-lg font-bold text-sage-600", children: [
-          "KSh ",
+          "KES ",
           income.toLocaleString()
         ] })
       ] }),
@@ -35237,7 +35435,7 @@ function BudgetPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-semibold uppercase tracking-widest text-ink-500", children: "Spent" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "font-display text-lg font-bold text-ink-800", children: [
-          "KSh ",
+          "KES ",
           expenses.toLocaleString()
         ] })
       ] }),
@@ -35247,7 +35445,7 @@ function BudgetPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-semibold uppercase tracking-widest text-ink-500", children: "Balance" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "font-display text-lg font-bold text-sage-600", children: [
-          "KSh ",
+          "KES ",
           balance.toLocaleString()
         ] })
       ] }),
@@ -35257,7 +35455,7 @@ function BudgetPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-semibold uppercase tracking-widest text-ink-500", children: "Still to buy" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "font-display text-lg font-bold text-ink-800", children: [
-          "KSh ",
+          "KES ",
           stillToBuy.toLocaleString()
         ] })
       ] })
@@ -35268,12 +35466,68 @@ function BudgetPage() {
         "After buying everything on your list you would have",
         " ",
         /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: cn("font-bold", remainingAfterBuying >= 0 ? "text-white" : "text-rose-200"), children: [
-          "KSh ",
+          "KES ",
           remainingAfterBuying.toLocaleString()
         ] }),
         " ",
         "left."
       ] })
+    ] }),
+    plannedItems.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "bg-white rounded-2xl border border-cream-200 p-5 mb-5", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3 mb-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-base font-semibold text-ink-800", children: "Wishlist / Planned Purchases" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-ink-500", children: [
+          plannedItems.length,
+          " planned"
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-2", children: plannedItems.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-3 rounded-xl border border-cream-200 px-3 py-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { size: 16, className: "text-sage-600 shrink-0" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium text-ink-800 truncate", children: item.name }),
+          item.quantity && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-ink-500", children: item.quantity })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-semibold text-ink-700 shrink-0", children: [
+          "KES ",
+          item.est_cost.toLocaleString()
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            size: "sm",
+            variant: "secondary",
+            onClick: async () => {
+              try {
+                await recordShoppingPurchase(item);
+                await load();
+              } catch {
+                setError("Could not mark the purchase as bought.");
+              }
+            },
+            "aria-label": `Mark ${item.name} as bought`,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 14 }),
+              " Bought"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: async () => {
+              try {
+                await deleteShoppingItem(item.id);
+                await load();
+              } catch {
+                setError("Could not delete planned purchase.");
+              }
+            },
+            className: "text-ink-400 hover:text-rose-soft-600",
+            "aria-label": "Delete planned purchase",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { size: 14 })
+          }
+        )
+      ] }, item.id)) })
     ] }),
     byCategory.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "bg-white rounded-2xl border border-cream-200 p-5 mb-5", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-base font-semibold text-ink-800 mb-3", children: "Spending by category" }),
@@ -35281,14 +35535,14 @@ function BudgetPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs mb-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-ink-700 font-medium", children: cat }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-ink-600", children: [
-            "KSh ",
+            "KES ",
             amount.toLocaleString()
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-2 rounded-full bg-cream-100 overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-full rounded-full bg-sage-500", style: { width: `${Math.round(amount / maxCat * 100)}%` } }) })
       ] }, cat)) })
     ] }),
-    loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-2", children: [1, 2, 3].map((i) => /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-16 rounded-xl bg-cream-100 animate-pulse" }, i)) }) : items.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { size: 26 }), title: "No entries yet", hint: "Add income or an expense to start tracking your money." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-2", children: items.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "group flex items-center gap-3 bg-white rounded-xl border border-cream-200 px-4 py-3", children: [
+    loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-2", children: [1, 2, 3].map((i) => /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-16 rounded-xl bg-cream-100 animate-pulse" }, i)) }) : completedItems.length === 0 && plannedItems.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(EmptyState, { icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { size: 26 }), title: "No entries yet", hint: "Add income or an expense to start tracking your money." }) : completedItems.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rounded-xl border border-cream-200 bg-white px-4 py-3 text-sm text-ink-500", children: "No completed income or expense entries yet." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-2", children: completedItems.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "group flex items-center gap-3 bg-white rounded-xl border border-cream-200 px-4 py-3", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", item.kind === "income" ? "bg-sage-100" : "bg-rose-soft-100"), children: item.kind === "income" ? /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { size: 15, className: "text-sage-600" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingDown, { size: 15, className: "text-rose-soft-600" }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium text-ink-800 truncate", children: item.category }),
@@ -35299,7 +35553,7 @@ function BudgetPage() {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: cn("text-sm font-semibold shrink-0", item.kind === "income" ? "text-sage-600" : "text-rose-soft-600"), children: [
         item.kind === "income" ? "+" : "−",
-        " KSh ",
+        " KES ",
         item.amount.toLocaleString()
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => remove2(item.id), className: "text-ink-400 hover:text-rose-soft-600", "aria-label": "Delete", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { size: 14 }) })
@@ -35307,26 +35561,30 @@ function BudgetPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: "New budget entry", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Type" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", children: ["expense", "income"].map((k) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", children: [
+          { value: "expense", label: "Expense" },
+          { value: "income", label: "Income" },
+          { value: "tobuy", label: "To Buy (Wishlist)" }
+        ].map(({ value, label }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
-            onClick: () => setForm({ ...form, kind: k }),
+            onClick: () => setForm({ ...form, type: value, category: value === "tobuy" ? "Shopping" : form.category }),
             className: cn(
               "flex-1 py-2 rounded-lg text-xs font-medium capitalize transition-all",
-              form.kind === k ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
+              form.type === value ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
             ),
-            children: k
+            children: label
           },
-          k
+          value
         )) })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Amount (KSh)" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Amount (KES)" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { type: "number", min: 0, value: form.amount, onChange: (e) => setForm({ ...form, amount: e.target.value }), placeholder: "0", autoFocus: true })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Category" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: CATEGORIES.map((cat) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+        form.type !== "tobuy" && /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Category" }),
+        form.type !== "tobuy" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: CATEGORIES.map((cat) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
             onClick: () => setForm({ ...form, category: cat }),
@@ -35340,14 +35598,21 @@ function BudgetPage() {
         )) })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Note (optional)" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { value: form.note, onChange: (e) => setForm({ ...form, note: e.target.value }), placeholder: "What was it for?" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: form.type === "tobuy" ? "What would you like to buy?" : "Note (optional)" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Input,
+          {
+            value: form.note,
+            onChange: (e) => setForm({ ...form, note: e.target.value }),
+            placeholder: form.type === "tobuy" ? "e.g. New shoes" : "What was it for?"
+          }
+        )
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Date" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { type: "date", max: todayISO(), value: form.item_date, onChange: (e) => setForm({ ...form, item_date: e.target.value }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Input, { type: "date", max: form.type === "tobuy" ? void 0 : todayISO(), value: form.item_date, onChange: (e) => setForm({ ...form, item_date: e.target.value }) })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: !form.amount.trim() || Number(form.amount) <= 0, className: "w-full", children: "Add entry" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: !form.amount.trim() || Number(form.amount) <= 0 || form.type === "tobuy" && !form.note.trim(), className: "w-full", children: "Add entry" })
     ] }) })
   ] });
 }
@@ -35395,13 +35660,13 @@ function MoodPage() {
     try {
       await upsertMood(selectedDate, score, note);
       setError("");
+      setSavedMsg("Saved!");
+      window.setTimeout(() => setSavedMsg(""), 2e3);
+      await load();
     } catch {
       setError("Could not save the mood.");
     } finally {
       setSaving(false);
-      setSavedMsg("Saved!");
-      setTimeout(() => setSavedMsg(""), 2e3);
-      load();
     }
   };
   const recent = moods.slice(0, 30);
@@ -35514,11 +35779,11 @@ function WaterPage() {
     try {
       await upsertWater(todayISO(), next, goal);
       setError("");
+      await load(false);
     } catch {
       setError("Could not update water data.");
     } finally {
       setSaving(false);
-      load(false);
     }
   };
   const setGoal = async (value) => {
@@ -35526,10 +35791,9 @@ function WaterPage() {
     try {
       await upsertWater(todayISO(), glasses, g);
       setError("");
+      await load(false);
     } catch {
       setError("Could not update the goal.");
-    } finally {
-      load(false);
     }
   };
   const week = intakes.slice(0, 7).reverse();
@@ -35617,12 +35881,12 @@ function GratitudePage() {
     try {
       await addGratitude(todayISO(), content.trim());
       setError("");
+      setContent("");
+      await load();
     } catch {
       setError("Could not add the note.");
     } finally {
       setSaving(false);
-      setContent("");
-      load();
     }
   };
   const remove2 = async (id) => {
@@ -35733,13 +35997,13 @@ function GoalsPage() {
         timeframe: form.timeframe
       });
       setError("");
+      setOpen(false);
+      setForm({ title: "", description: "", timeframe: "yearly" });
+      await load();
     } catch {
       setError("Could not create the goal.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      setForm({ title: "", description: "", timeframe: "yearly" });
-      load();
     }
   };
   const switchTimeframe = async (goal) => {
@@ -35884,47 +36148,58 @@ function GoalsPage() {
         hint: "Name something bigger than today — a yearly or monthly goal, then break it into steps."
       }
     ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-6", children: activeGoals.map(renderGoal) }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: "New goal", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Goal" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
-          {
-            value: form.title,
-            onChange: (e) => setForm({ ...form, title: e.target.value }),
-            placeholder: "e.g. Run a half marathon"
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Timeframe" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", children: ["monthly", "yearly"].map((tf) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => setForm({ ...form, timeframe: tf }),
-            className: cn(
-              "px-4 py-2 rounded-xl text-sm font-medium transition-all",
-              form.timeframe === tf ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
-            ),
-            children: tf === "monthly" ? "Monthly" : "Yearly"
-          },
-          tf
-        )) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Why it matters" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Textarea,
-          {
-            rows: 3,
-            value: form.description,
-            onChange: (e) => setForm({ ...form, description: e.target.value }),
-            placeholder: "Optional motivation..."
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: add, disabled: saving || !form.title.trim(), className: "w-full", children: saving ? "Saving..." : "Create goal" })
-    ] }) })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Modal,
+      {
+        open,
+        onClose: () => {
+          setOpen(false);
+          setForm({ title: "", description: "", timeframe: "yearly" });
+        },
+        title: "New goal",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Goal" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: form.title,
+                onChange: (e) => setForm({ ...form, title: e.target.value }),
+                placeholder: "e.g. Run a half marathon"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Timeframe" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", children: ["monthly", "yearly"].map((tf) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: () => setForm({ ...form, timeframe: tf }),
+                className: cn(
+                  "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                  form.timeframe === tf ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
+                ),
+                children: tf === "monthly" ? "Monthly" : "Yearly"
+              },
+              tf
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Why it matters" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Textarea,
+              {
+                rows: 3,
+                value: form.description,
+                onChange: (e) => setForm({ ...form, description: e.target.value }),
+                placeholder: "Optional motivation..."
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: add, disabled: saving || !form.title.trim(), className: "w-full", children: saving ? "Saving..." : "Create goal" })
+        ] })
+      }
+    )
   ] });
 }
 function BrainDumpPage() {
@@ -35953,11 +36228,11 @@ function BrainDumpPage() {
       await addInboxItem(content.trim());
       setContent("");
       setError("");
+      await load();
     } catch {
       setError("Could not save the thought.");
     } finally {
       setSaving(false);
-      load();
     }
   };
   const remove2 = async (id) => {
@@ -36072,12 +36347,16 @@ function QuoteVaultPage() {
       setForm({ text: "", author: "", kind: "quote" });
       setOpen(false);
       setError("");
+      await load();
     } catch {
       setError("Could not save the entry.");
     } finally {
       setSaving(false);
-      load();
     }
+  };
+  const openNewEntry = () => {
+    setForm({ text: "", author: "", kind: "quote" });
+    setOpen(true);
   };
   const remove2 = async (id) => {
     try {
@@ -36094,7 +36373,7 @@ function QuoteVaultPage() {
       {
         title: "Quote Vault",
         subtitle: "Words to revisit when you need them",
-        action: /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { onClick: () => setOpen(true), children: [
+        action: /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { onClick: openNewEntry, children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 16 }),
           " New entry"
         ] })
@@ -36150,51 +36429,62 @@ function QuoteVaultPage() {
       },
       quote2.id
     )) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open, onClose: () => setOpen(false), title: "New vault entry", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Words" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Textarea,
-          {
-            rows: 4,
-            value: form.text,
-            onChange: (e) => setForm({ ...form, text: e.target.value }),
-            placeholder: "A favorite quote, excerpt, or affirmation..."
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Said by (optional)" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
-          {
-            value: form.author,
-            onChange: (e) => setForm({ ...form, author: e.target.value }),
-            placeholder: "Author, book title, or just you..."
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Kind" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: KINDS.map((kind) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => setForm({ ...form, kind }),
-            className: `px-3 py-1.5 rounded-full text-xs font-medium transition-all ${form.kind === kind ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"}`,
-            children: KIND_LABELS[kind]
-          },
-          kind
-        )) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: saving || !form.text.trim(), className: "w-full", children: saving ? "Saving..." : "Save to vault" })
-    ] }) })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Modal,
+      {
+        open,
+        onClose: () => {
+          setOpen(false);
+          setForm({ text: "", author: "", kind: "quote" });
+        },
+        title: "New vault entry",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Words" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Textarea,
+              {
+                rows: 4,
+                value: form.text,
+                onChange: (e) => setForm({ ...form, text: e.target.value }),
+                placeholder: "A favorite quote, excerpt, or affirmation..."
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Said by (optional)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: form.author,
+                onChange: (e) => setForm({ ...form, author: e.target.value }),
+                placeholder: "Author, book title, or just you..."
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { children: "Kind" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: KINDS.map((kind) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: () => setForm({ ...form, kind }),
+                className: `px-3 py-1.5 rounded-full text-xs font-medium transition-all ${form.kind === kind ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"}`,
+                children: KIND_LABELS[kind]
+              },
+              kind
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: save, disabled: saving || !form.text.trim(), className: "w-full", children: saving ? "Saving..." : "Save to vault" })
+        ] })
+      }
+    )
   ] });
 }
 function filterQuotes(quotes, query) {
   const q = query.toLowerCase();
   return quotes.filter((quote2) => quote2.text.toLowerCase().includes(q) || quote2.author.toLowerCase().includes(q));
 }
-function renderSection(section, onNavigate) {
+function renderSection(section, onNavigate, mealTab) {
   switch (section) {
     case "dashboard":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(DashboardPage, { onNavigate });
@@ -36215,7 +36505,7 @@ function renderSection(section, onNavigate) {
     case "habits":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(HabitsPage, {});
     case "meals":
-      return /* @__PURE__ */ jsxRuntimeExports.jsx(MealsPage, {});
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(MealsPage, { activeTab: mealTab, onTabChange: (tab) => onNavigate(`meals:${tab}`) });
     case "budget":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(BudgetPage, {});
     case "mood":
@@ -36249,48 +36539,109 @@ const SECTION_TITLES = {
   profile: "Profile"
 };
 function App() {
-  const { session, loading } = useAuth();
+  const { session, loading, offlineAccess } = useAuth();
   const [section, setSection] = reactExports.useState("dashboard");
+  const [mealTab, setMealTab] = reactExports.useState("week");
   const [menuOpen, setMenuOpen] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    window.history.replaceState(
+      { ...window.history.state ?? {}, appSection: "dashboard", mealTab: "week" },
+      "",
+      window.location.href
+    );
+    const restoreSection = (event) => {
+      var _a, _b;
+      const sectionId = (_a = event.state) == null ? void 0 : _a.appSection;
+      if (typeof sectionId === "string" && Object.prototype.hasOwnProperty.call(SECTION_TITLES, sectionId)) {
+        setSection(sectionId);
+      } else {
+        setSection("dashboard");
+      }
+      const tab = (_b = event.state) == null ? void 0 : _b.mealTab;
+      setMealTab(
+        tab === "week" || tab === "library" || tab === "recipes" || tab === "pantry" || tab === "shopping" ? tab : "week"
+      );
+      setMenuOpen(false);
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener("popstate", restoreSection);
+    return () => window.removeEventListener("popstate", restoreSection);
+  }, []);
   const navigate = (id) => {
-    setSection(id);
+    const mealTarget = id.match(/^meals:(week|library|recipes|pantry|shopping)$/);
+    const nextSection = mealTarget ? "meals" : id;
+    if (!Object.prototype.hasOwnProperty.call(SECTION_TITLES, nextSection)) return;
+    const nextMealTab = mealTarget ? mealTarget[1] : nextSection === "meals" ? mealTab : "week";
+    if (nextSection !== section || nextSection === "meals" && nextMealTab !== mealTab) {
+      window.history.pushState(
+        { appSection: nextSection, mealTab: nextMealTab },
+        "",
+        window.location.href
+      );
+      setSection(nextSection);
+      setMealTab(nextMealTab);
+    }
     setMenuOpen(false);
     window.scrollTo({ top: 0 });
   };
+  const mobileTitle = section !== "meals" ? SECTION_TITLES[section] : mealTab === "pantry" ? "Pantry" : mealTab === "shopping" ? "Shop" : mealTab === "recipes" ? "Recipes" : "Meal Planner";
   if (loading) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-10 w-10 rounded-2xl bg-cream-100 animate-pulse" }) });
   }
-  if (!session) return /* @__PURE__ */ jsxRuntimeExports.jsx(SignInScreen, {});
+  if (!session && !offlineAccess) return /* @__PURE__ */ jsxRuntimeExports.jsx(SignInScreen, {});
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "md:hidden sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-cream-200", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "sticky top-0 z-40 relative bg-white/95 backdrop-blur border-b border-cream-200", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-4 py-3", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Feather, { size: 20, className: "text-sage-600" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-lg font-semibold text-ink-800", children: SECTION_TITLES[section] })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-lg font-semibold text-ink-800", children: mobileTitle }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-ink-400", children: "v2.01" })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => setMenuOpen(!menuOpen),
-            className: "p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors",
-            "aria-label": "Menu",
-            children: menuOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 20 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Menu, { size: 20 })
-          }
-        )
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              onClick: () => navigate("profile"),
+              className: "p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors",
+              "aria-label": "Open profile and settings",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(UserRound, { size: 20 })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              onClick: () => setMenuOpen(!menuOpen),
+              className: "p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors",
+              "aria-label": "Menu",
+              "aria-expanded": menuOpen,
+              children: menuOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 20 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Menu, { size: 20 })
+            }
+          )
+        ] })
       ] }),
-      menuOpen && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "border-t border-cream-200 max-h-[42vh] overflow-y-auto bg-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CompactNav, { active: section, onNavigate: navigate }) })
+      menuOpen && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute left-0 top-full z-50 border-r border-b border-cream-200 bg-white shadow-lg", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CompactNav, { active: section, onNavigate: navigate }) })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "hidden md:flex flex-col w-60 shrink-0 border-r border-cream-200 bg-white/60 sticky top-0 h-screen overflow-y-auto", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 px-6 pt-6 pb-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Feather, { size: 22, className: "text-sage-600" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-xl font-semibold text-ink-800", children: "Life Hub" })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "hidden md:flex flex-col w-60 shrink-0 border-r border-cream-200 bg-white/60 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-6 pt-6 pb-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Feather, { size: 22, className: "text-sage-600" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-xl font-semibold text-ink-800", children: "Life Hub" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              onClick: () => navigate("profile"),
+              className: "p-2 rounded-xl text-ink-600 hover:bg-cream-100",
+              "aria-label": "Open profile and settings",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(UserRound, { size: 19 })
+            }
+          )
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, { active: section, onNavigate: navigate })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-10 pb-24 md:pb-10 max-w-4xl mx-auto w-full", children: renderSection(section, navigate) })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-10 pb-10 max-w-4xl mx-auto w-full", children: renderSection(section, navigate, mealTab) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(MobileNav, { active: section, onNavigate: navigate }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(InstallAppCard, {})
   ] });
 }

@@ -55,13 +55,13 @@ export function MoodPage() {
     try {
       await upsertMood(selectedDate, score, note);
       setError("");
+      setSavedMsg("Saved!");
+      window.setTimeout(() => setSavedMsg(""), 2000);
+      await load();
     } catch {
       setError("Could not save the mood.");
     } finally {
       setSaving(false);
-      setSavedMsg("Saved!");
-      setTimeout(() => setSavedMsg(""), 2000);
-      load();
     }
   };
 

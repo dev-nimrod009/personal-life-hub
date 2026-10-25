@@ -184,7 +184,6 @@ export interface ShoppingItem {
 export interface BudgetItem {
   id: string;
   kind: "income" | "expense";
-  planned?: boolean;
   amount: number;
   category: string;
   note: string;

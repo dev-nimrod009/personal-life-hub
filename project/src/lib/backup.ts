@@ -28,12 +28,24 @@ export interface BackupFile {
   data: Record<string, unknown[]>;
 }
 
-export async function createBackup(): Promise<BackupFile> {
+export interface BackupProgress {
+  backedUp: number;
+  remaining: number;
+  total: number;
+}
+
+export async function createBackup(onProgress?: (progress: BackupProgress) => void): Promise<BackupFile> {
+  const total = await countRows();
+  let backedUp = 0;
+  onProgress?.({ backedUp, remaining: total, total });
   const data: Record<string, unknown[]> = {};
   for (const table of BACKUP_TABLES) {
     const { data: rows, error } = await supabase.from(table).select("*");
     if (error) throw new Error(`Could not read ${table}: ${error.message}`);
-    data[table] = (rows as unknown[]) ?? [];
+    const tableRows = (rows as unknown[]) ?? [];
+    data[table] = tableRows;
+    backedUp += tableRows.length;
+    onProgress?.({ backedUp, remaining: Math.max(0, total - backedUp), total });
   }
   return {
     app: "Life Hub",
@@ -56,8 +68,11 @@ function downloadBackup(file: BackupFile): void {
   URL.revokeObjectURL(url);
 }
 
-export async function backupToFile(): Promise<void> {
-  downloadBackup(await createBackup());
+export async function backupToFile(onProgress?: (progress: BackupProgress) => void): Promise<BackupProgress> {
+  const file = await createBackup(onProgress);
+  downloadBackup(file);
+  const total = Object.values(file.data).reduce((sum, rows) => sum + rows.length, 0);
+  return { backedUp: total, remaining: 0, total };
 }
 
 export async function restoreFromText(text: string): Promise<{ restored: number; skipped: number }> {

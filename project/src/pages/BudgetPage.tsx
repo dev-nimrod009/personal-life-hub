@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Wallet, TrendingUp, TrendingDown, ArrowLeftRight, ShoppingCart, Info, Check } from "lucide-react";
-import { listBudgetItems, addBudgetItem, deleteBudgetItem, listShopping, markBudgetItemBought } from "../lib/data";
+import {
+  listBudgetItems,
+  addBudgetItem,
+  deleteBudgetItem,
+  listShopping,
+  addShoppingItem,
+  deleteShoppingItem,
+  recordShoppingPurchase,
+} from "../lib/data";
 import type { BudgetItem, ShoppingItem } from "../lib/types";
 import { Button, Input, EmptyState, Label, Modal, SectionHeader } from "../components/ui";
 import { cn, todayISO } from "../lib/utils";
@@ -40,15 +48,19 @@ export function BudgetPage() {
   const save = async () => {
     const amount = Number(form.amount);
     if (!form.amount.trim() || !Number.isFinite(amount) || amount <= 0) return;
+    if (form.type === "tobuy" && !form.note.trim()) return;
     try {
-      await addBudgetItem({
-        kind: form.type === "income" ? "income" : "expense",
-        planned: form.type === "tobuy",
-        amount,
-        category: form.type === "tobuy" ? "Shopping" : form.category,
-        note: form.note.trim(),
-        item_date: form.item_date,
-      });
+      if (form.type === "tobuy") {
+        await addShoppingItem({ name: form.note.trim(), est_cost: amount });
+      } else {
+        await addBudgetItem({
+          kind: form.type,
+          amount,
+          category: form.category,
+          note: form.note.trim(),
+          item_date: form.item_date,
+        });
+      }
       setError("");
       setOpen(false);
       setForm({ type: "expense", amount: "", category: "Food", note: "", item_date: todayISO() });
@@ -66,7 +78,6 @@ export function BudgetPage() {
   const { income, expenses, balance } = useMemo(() => {
     let inc = 0, exp = 0;
     for (const item of items) {
-      if (item.planned) continue;
       if (item.kind === "income") inc += item.amount;
       else if (item.kind === "expense") exp += item.amount;
     }
@@ -74,20 +85,18 @@ export function BudgetPage() {
   }, [items]);
 
   const stillToBuy = useMemo(
-    () =>
-      items.filter((item) => item.planned).reduce((sum, item) => sum + item.amount, 0) +
-      shopping.filter((item) => !item.bought).reduce((sum, item) => sum + item.est_cost, 0),
-    [items, shopping]
+    () => shopping.filter((item) => !item.bought).reduce((sum, item) => sum + item.est_cost, 0),
+    [shopping]
   );
 
   const remainingAfterBuying = balance - stillToBuy;
-  const plannedItems = items.filter((item) => item.planned);
-  const completedItems = items.filter((item) => !item.planned);
+  const plannedItems = shopping.filter((item) => !item.bought);
+  const completedItems = items;
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
     for (const item of items) {
-      if (item.kind === "expense" && !item.planned) {
+      if (item.kind === "expense") {
         map.set(item.category, (map.get(item.category) ?? 0) + item.amount);
       }
     }
@@ -167,28 +176,37 @@ export function BudgetPage() {
               <li key={item.id} className="flex items-center gap-3 rounded-xl border border-cream-200 px-3 py-3">
                 <ShoppingCart size={16} className="text-sage-600 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-800 truncate">{item.note || "Planned purchase"}</p>
-                  <p className="text-xs text-ink-500">
-                    {item.category} · {new Date(item.item_date + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  </p>
+                  <p className="text-sm font-medium text-ink-800 truncate">{item.name}</p>
+                  {item.quantity && <p className="text-xs text-ink-500">{item.quantity}</p>}
                 </div>
-                <span className="text-sm font-semibold text-ink-700 shrink-0">KES {item.amount.toLocaleString()}</span>
+                <span className="text-sm font-semibold text-ink-700 shrink-0">KES {item.est_cost.toLocaleString()}</span>
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={async () => {
                     try {
-                      await markBudgetItemBought(item.id);
+                      await recordShoppingPurchase(item);
                       await load();
                     } catch {
                       setError("Could not mark the purchase as bought.");
                     }
                   }}
-                  aria-label={`Mark ${item.note || "planned purchase"} as bought`}
+                  aria-label={`Mark ${item.name} as bought`}
                 >
                   <Check size={14} /> Bought
                 </Button>
-                <button onClick={() => remove(item.id)} className="text-ink-400 hover:text-rose-soft-600" aria-label="Delete planned purchase">
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteShoppingItem(item.id);
+                      await load();
+                    } catch {
+                      setError("Could not delete planned purchase.");
+                    }
+                  }}
+                  className="text-ink-400 hover:text-rose-soft-600"
+                  aria-label="Delete planned purchase"
+                >
                   <Trash2 size={14} />
                 </button>
               </li>
@@ -294,14 +312,18 @@ export function BudgetPage() {
             </div>}
           </div>
           <div>
-            <Label>Note (optional)</Label>
-            <Input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="What was it for?" />
+            <Label>{form.type === "tobuy" ? "What would you like to buy?" : "Note (optional)"}</Label>
+            <Input
+              value={form.note}
+              onChange={(e) => setForm({ ...form, note: e.target.value })}
+              placeholder={form.type === "tobuy" ? "e.g. New shoes" : "What was it for?"}
+            />
           </div>
           <div>
             <Label>Date</Label>
-            <Input type="date" max={todayISO()} value={form.item_date} onChange={(e) => setForm({ ...form, item_date: e.target.value })} />
+            <Input type="date" max={form.type === "tobuy" ? undefined : todayISO()} value={form.item_date} onChange={(e) => setForm({ ...form, item_date: e.target.value })} />
           </div>
-          <Button onClick={save} disabled={!form.amount.trim() || Number(form.amount) <= 0} className="w-full">
+          <Button onClick={save} disabled={!form.amount.trim() || Number(form.amount) <= 0 || (form.type === "tobuy" && !form.note.trim())} className="w-full">
             Add entry
           </Button>
         </div>

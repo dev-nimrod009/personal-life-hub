@@ -44,12 +44,17 @@ export function QuoteVaultPage() {
       setForm({ text: "", author: "", kind: "quote" });
       setOpen(false);
       setError("");
+      await load();
     } catch {
       setError("Could not save the entry.");
     } finally {
       setSaving(false);
-      load();
     }
+  };
+
+  const openNewEntry = () => {
+    setForm({ text: "", author: "", kind: "quote" });
+    setOpen(true);
   };
 
   const remove = async (id: string) => {
@@ -69,7 +74,7 @@ export function QuoteVaultPage() {
         title="Quote Vault"
         subtitle="Words to revisit when you need them"
         action={
-          <Button onClick={() => setOpen(true)}>
+          <Button onClick={openNewEntry}>
             <Plus size={16} /> New entry
           </Button>
         }
@@ -131,7 +136,14 @@ export function QuoteVaultPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New vault entry">
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setForm({ text: "", author: "", kind: "quote" });
+        }}
+        title="New vault entry"
+      >
         <div className="space-y-4">
           <div>
             <Label>Words</Label>

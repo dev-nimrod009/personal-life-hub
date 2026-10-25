@@ -109,13 +109,15 @@ export function NotesPage() {
         content: form.content,
         category: form.category,
       });
+      setEditing(null);
+      setForm(emptyDraft);
+      setOpen(false);
       setError("");
+      await load();
     } catch {
       setError("Could not save the note.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      load();
     }
   };
 
@@ -359,7 +361,15 @@ export function NotesPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Edit note" : "New note"}>
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setEditing(null);
+          setForm(emptyDraft);
+        }}
+        title={editing ? "Edit note" : "New note"}
+      >
         <div className="space-y-4">
           <div>
             <Label>Category</Label>

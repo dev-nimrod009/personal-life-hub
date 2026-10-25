@@ -38,11 +38,11 @@ export function WaterPage() {
     try {
       await upsertWater(todayISO(), next, goal);
       setError("");
+      await load(false);
     } catch {
       setError("Could not update water data.");
     } finally {
       setSaving(false);
-      load(false);
     }
   };
 
@@ -51,10 +51,9 @@ export function WaterPage() {
     try {
       await upsertWater(todayISO(), glasses, g);
       setError("");
+      await load(false);
     } catch {
       setError("Could not update the goal.");
-    } finally {
-      load(false);
     }
   };
 

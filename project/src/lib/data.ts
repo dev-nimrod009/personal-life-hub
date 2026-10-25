@@ -932,7 +932,6 @@ export async function listBudgetItems(): Promise<BudgetItem[]> {
 export async function addBudgetItem(entry: {
   id?: string;
   kind: "income" | "expense";
-  planned?: boolean;
   amount: number;
   category: string;
   note: string;
@@ -944,21 +943,11 @@ export async function addBudgetItem(entry: {
     row: {
       id: entry.id ?? uid(),
       kind: entry.kind,
-      planned: entry.planned ?? false,
       amount: Math.max(0, Math.round(entry.amount)),
       category: entry.category,
       note: entry.note,
       item_date: entry.item_date,
     },
-  });
-}
-
-export async function markBudgetItemBought(id: string): Promise<void> {
-  await remoteOrQueue({
-    table: "budget_items",
-    kind: "update",
-    row: { id },
-    changes: { planned: false, item_date: todayISO() },
   });
 }
 

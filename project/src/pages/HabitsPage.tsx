@@ -59,13 +59,13 @@ export function HabitsPage() {
     try {
       await createHabit(form);
       setError("");
+      setOpen(false);
+      setForm({ name: "", icon: "💧", color: "sage" });
+      await load();
     } catch {
       setError("Could not create the habit.");
     } finally {
       setSaving(false);
-      setOpen(false);
-      setForm({ name: "", icon: "💧", color: "sage" });
-      load();
     }
   };
 
@@ -178,7 +178,14 @@ export function HabitsPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New habit">
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setForm({ name: "", icon: "💧", color: "sage" });
+        }}
+        title="New habit"
+      >
         <div className="space-y-4">
           <div>
             <Label>Name</Label>

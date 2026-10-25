@@ -34,11 +34,11 @@ export function BrainDumpPage() {
       await addInboxItem(content.trim());
       setContent("");
       setError("");
+      await load();
     } catch {
       setError("Could not save the thought.");
     } finally {
       setSaving(false);
-      load();
     }
   };
 

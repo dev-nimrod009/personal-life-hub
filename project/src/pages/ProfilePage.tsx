@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Fingerprint, Check, Download, Upload, Database, KeyRound, AlertTriangle } from "lucide-react";
+import { Camera, Fingerprint, Check, Download, Upload, KeyRound, AlertTriangle } from "lucide-react";
 import { getProfile, updateProfile } from "../lib/data";
-import { backupToFile, restoreFromText, countRows } from "../lib/backup";
+import { backupToFile, restoreFromText, type BackupProgress } from "../lib/backup";
 import { useAuth } from "../lib/auth";
 import { todayISO } from "../lib/utils";
 import type { Profile } from "../lib/types";
@@ -58,7 +58,7 @@ function compressImage(file: File, maxSize: number): Promise<string> {
 }
 
 export function ProfilePage() {
-  const { user, registerPasskey, hasPasskey, setupLocalPin, hasLocalPin, signOut } = useAuth();
+  const { user, registerPasskey, hasPasskey, setupLocalPin, unlockWithLocalPin, hasLocalPin, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,7 +66,8 @@ export function ProfilePage() {
   const [error, setError] = useState("");
   const [restoring, setRestoring] = useState(false);
   const [restoreResult, setRestoreResult] = useState<string>("");
-  const [rowCount, setRowCount] = useState<number | null>(null);
+  const [backupProgress, setBackupProgress] = useState<BackupProgress | null>(null);
+  const [backupRunning, setBackupRunning] = useState(false);
   const [form, setForm] = useState({
     full_name: "",
     avatar_url: "",
@@ -159,6 +160,20 @@ export function ProfilePage() {
   };
 
   const handlePinSetup = async () => {
+    if (pinMode === "verify") {
+      try {
+        if (!(await unlockWithLocalPin(pinInput))) {
+          setPinError("That PIN is not correct.");
+          return;
+        }
+        setPinOpen(false);
+        setPinInput("");
+        setPinError("");
+      } catch {
+        setPinError("Could not verify the PIN on this device.");
+      }
+      return;
+    }
     if (pinInput.length < 4) {
       setPinError("PIN must be at least 4 digits.");
       return;
@@ -168,32 +183,31 @@ export function ProfilePage() {
         setPinError("PINs do not match.");
         return;
       }
-      setupLocalPin(pinInput);
-      setPinOpen(false);
-      setPinInput("");
-      setPinConfirm("");
-      setPinError("");
+      try {
+        await setupLocalPin(pinInput);
+        setPinOpen(false);
+        setPinInput("");
+        setPinConfirm("");
+        setPinError("");
+      } catch {
+        setPinError("Could not save the PIN on this device.");
+      }
     }
   };
 
-  useEffect(() => {
-    if (!user) return;
-    void (async () => {
-      try {
-        setRowCount(await countRows());
-      } catch {
-        setRowCount(null);
-      }
-    })();
-  }, [user]);
-
   const doBackup = () => {
     void (async () => {
+      setBackupRunning(true);
+      setBackupProgress(null);
       try {
-        await backupToFile();
+        const progress = await backupToFile(setBackupProgress);
+        setBackupProgress(progress);
         setError("");
       } catch {
         setError("Could not create your backup file. Check your connection and try again.");
+        setBackupProgress(null);
+      } finally {
+        setBackupRunning(false);
       }
     })();
   };
@@ -210,7 +224,6 @@ export function ProfilePage() {
             ? `Restored ${restored} item${restored === 1 ? "" : "s"} into your account. Everything you already had was kept.`
             : "Nothing new to restore - your account already has all of it."
         );
-        setRowCount(await countRows());
         setError("");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not read that backup file.");
@@ -364,14 +377,22 @@ export function ProfilePage() {
               Your entries live in your account, so they follow you to any phone automatically - just sign in. As an
               extra safety net, you can also save a backup file to your device or bring one back in.
             </p>
-            {rowCount !== null && (
-              <div className="flex items-center gap-2 text-sm font-medium text-sage-600 mb-4">
-                <Database size={16} /> {rowCount} item{rowCount === 1 ? "" : "s"} safely stored in your account
+            {backupRunning && (
+              <div className="flex items-center gap-2 text-sm font-medium text-sage-600 mb-4" role="status">
+                <Download size={16} />
+                {backupProgress
+                  ? `${backupProgress.backedUp} items backed up, ${backupProgress.remaining} remaining`
+                  : "Preparing your backup..."}
+              </div>
+            )}
+            {!backupRunning && backupProgress && (
+              <div className="flex items-center gap-2 text-sm font-medium text-sage-600 mb-4" role="status">
+                <Check size={16} /> All items are backed up.
               </div>
             )}
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button onClick={doBackup}>
-                <Download size={16} /> Save backup file
+              <Button onClick={doBackup} disabled={backupRunning}>
+                <Download size={16} /> {backupRunning ? "Backing up..." : "Save backup file"}
               </Button>
               <label className="cursor-pointer">
                 <span className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium border transition-colors bg-white text-ink-700 border-cream-200 hover:bg-cream-100 w-full sm:w-auto" style={{ minHeight: 40 }}>
@@ -416,8 +437,23 @@ export function ProfilePage() {
               </Button>
             )}
             {hasLocalPin ? (
-              <div className="flex items-center gap-2 text-sm font-medium text-sage-600">
-                <KeyRound size={16} /> Local PIN is set up
+              <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-sage-600">
+                <span className="flex items-center gap-2">
+                  <KeyRound size={16} /> Local PIN is set up
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPinMode("verify");
+                    setPinOpen(true);
+                    setPinError("");
+                    setPinInput("");
+                    setPinConfirm("");
+                  }}
+                >
+                  Verify PIN
+                </Button>
               </div>
             ) : (
               <Button variant="ghost" onClick={() => { setPinMode("setup"); setPinOpen(true); setPinError(""); setPinInput(""); setPinConfirm(""); }}>
@@ -472,8 +508,12 @@ export function ProfilePage() {
             </div>
           )}
           {pinError && <div className="rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{pinError}</div>}
-          <Button onClick={() => void handlePinSetup()} disabled={pinInput.length < 4} className="w-full">
-            {pinMode === "setup" ? "Save PIN" : "Unlock"}
+          <Button
+            onClick={() => void handlePinSetup()}
+            disabled={pinInput.length < (pinMode === "setup" ? 4 : 1)}
+            className="w-full"
+          >
+            {pinMode === "setup" ? "Save PIN" : "Verify PIN"}
           </Button>
         </div>
       </Modal>

@@ -34,12 +34,12 @@ export function GratitudePage() {
     try {
       await addGratitude(todayISO(), content.trim());
       setError("");
+      setContent("");
+      await load();
     } catch {
       setError("Could not add the note.");
     } finally {
       setSaving(false);
-      setContent("");
-      load();
     }
   };
 

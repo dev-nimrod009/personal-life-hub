@@ -179,11 +179,10 @@ function WeekPlan() {
         cost: item.default_cost,
       });
       setError("");
+      setPicker(null);
+      await load();
     } catch {
       setError("Could not add the meal.");
-    } finally {
-      setPicker(null);
-      load();
     }
   };
 
@@ -192,11 +191,10 @@ function WeekPlan() {
     try {
       await addMeal({ meal_date: date, meal_type: mealType, name: name.trim(), notes: "", cost });
       setError("");
+      setPicker(null);
+      await load();
     } catch {
       setError("Could not add the meal.");
-    } finally {
-      setPicker(null);
-      load();
     }
   };
 
@@ -354,17 +352,16 @@ function MealPicker({
 }) {
   const [customName, setCustomName] = useState("");
   const [customCost, setCustomCost] = useState("");
-  const matches = library.filter((l) => l.meal_type === mealType);
   return (
     <Modal open onClose={onClose} title={`Add ${mealType} · ${new Date(date + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`}>
       <div className="space-y-4">
         <div>
           <Label>Pick from your meal library</Label>
-          {matches.length === 0 ? (
-            <p className="text-xs text-ink-500">No saved {mealType.toLowerCase()} meals yet. Add one in the Meal Library tab.</p>
+          {library.length === 0 ? (
+            <p className="text-xs text-ink-500">No saved meals yet. Add one in the Meal Library tab.</p>
           ) : (
             <ul className="space-y-1.5 max-h-56 overflow-y-auto">
-              {matches.map((item) => (
+              {library.map((item) => (
                 <li key={item.id}>
                   <button
                     onClick={() => onPick(item)}
@@ -372,6 +369,7 @@ function MealPicker({
                   >
                     <span className="text-base">{item.emoji}</span>
                     <span className="text-sm text-ink-800 flex-1 truncate">{item.name}</span>
+                    <span className="text-[10px] text-ink-500">{item.meal_type}</span>
                     {item.default_cost > 0 && <span className="text-[11px] text-sage-600 font-medium">KES {item.default_cost.toLocaleString()}</span>}
                   </button>
                 </li>
@@ -453,12 +451,11 @@ function MealLibrary() {
         recipe_id: form.recipe_id || null,
       });
       setError("");
-    } catch {
-      setError("Could not save the meal.");
-    } finally {
       setOpen(false);
       setForm({ name: "", meal_type: "Dinner", default_cost: "", emoji: "🍽️", notes: "", recipe_id: "" });
-      load();
+      await load();
+    } catch {
+      setError("Could not save the meal.");
     }
   };
 
@@ -503,7 +500,14 @@ function MealLibrary() {
         </ul>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New meal">
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setForm({ name: "", meal_type: "Dinner", default_cost: "", emoji: "🍽️", notes: "", recipe_id: "" });
+        }}
+        title="New meal"
+      >
         <div className="space-y-4">
           <div>
             <Label>Name</Label>
@@ -585,12 +589,11 @@ function Recipes() {
         servings: Number(form.servings) || 1,
       });
       setError("");
-    } catch {
-      setError("Could not save the recipe.");
-    } finally {
       setOpen(false);
       setForm({ title: "", ingredients: "", instructions: "", servings: "2" });
-      load();
+      await load();
+    } catch {
+      setError("Could not save the recipe.");
     }
   };
 
@@ -630,7 +633,14 @@ function Recipes() {
         </ul>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New recipe">
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setForm({ title: "", ingredients: "", instructions: "", servings: "2" });
+        }}
+        title="New recipe"
+      >
         <div className="space-y-4">
           <div>
             <Label>Meal name</Label>
@@ -709,10 +719,10 @@ function Pantry() {
       await addPantryItem({ name: name.trim(), quantity: quantity.trim(), unit: unit.trim() });
       setName(""); setQuantity(""); setUnit("");
       setError("");
+      await load();
     } catch {
       setError("Could not add item.");
     }
-    load();
   };
 
   const toggleNeed = async (item: PantryItem) => {
@@ -819,10 +829,10 @@ function Shopping() {
       await addShoppingItem({ name: name.trim(), quantity: quantity.trim(), est_cost: Number(cost) || 0 });
       setName(""); setQuantity(""); setCost("");
       setError("");
+      await load();
     } catch {
       setError("Could not add item.");
     }
-    load();
   };
 
   const importFromPantry = async () => {
@@ -834,10 +844,10 @@ function Shopping() {
         await setPantryNeedToBuy(p.id, false);
       }
       setError("");
+      await load();
     } catch {
       setError("Could not import pantry items.");
     }
-    load();
   };
 
   const toggleBought = async (item: ShoppingItem) => {

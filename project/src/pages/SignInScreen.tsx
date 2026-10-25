@@ -57,6 +57,7 @@ export function SignInScreen() {
           <p className="text-sm text-ink-500 mt-1 text-center">
             Your private journal, planner, and wellbeing space
           </p>
+          <p className="text-[10px] text-ink-400 mt-1">v2.01</p>
         </div>
 
         <div className="flex rounded-xl bg-cream-100 p-1 mb-6">

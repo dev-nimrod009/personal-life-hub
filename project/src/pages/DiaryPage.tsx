@@ -43,15 +43,16 @@ export function DiaryPage() {
   };
 
   const save = async () => {
+    if (!content.trim()) return;
     setSaving(true);
     try {
       await upsertDiary(selectedDate, content, entryId);
       setError("");
+      await load();
     } catch {
       setError("Could not save the page.");
     } finally {
       setSaving(false);
-      await load();
     }
   };
 

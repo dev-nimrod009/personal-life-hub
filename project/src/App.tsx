@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Menu, X, Feather } from "lucide-react";
-import { Sidebar, MobileNav, CompactNav, type SectionId } from "./components/nav";
+import { Menu, X, Feather, UserRound } from "lucide-react";
+import { Sidebar, CompactNav, type SectionId } from "./components/nav";
 import { InstallAppCard } from "./components/InstallAppCard";
 import { useAuth } from "./lib/auth";
 import { SignInScreen } from "./pages/SignInScreen";
@@ -150,42 +150,61 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      <header className="md:hidden sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-cream-200">
+      <header className="sticky top-0 z-40 relative bg-white/95 backdrop-blur border-b border-cream-200">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <Feather size={20} className="text-sage-600" />
             <span className="font-display text-lg font-semibold text-ink-800">{mobileTitle}</span>
+            <span className="text-[10px] text-ink-400">v2.01</span>
           </div>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
-            aria-label="Menu"
-          >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => navigate("profile")}
+              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
+              aria-label="Open profile and settings"
+            >
+              <UserRound size={20} />
+            </button>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
         {menuOpen && (
-          <div className="border-t border-cream-200 max-h-[42vh] overflow-y-auto bg-white">
+          <div className="absolute left-0 top-full z-50 border-r border-b border-cream-200 bg-white shadow-lg">
             <CompactNav active={section} onNavigate={navigate} />
           </div>
         )}
       </header>
 
       <div className="flex">
-        <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-cream-200 bg-white/60 sticky top-0 h-screen overflow-y-auto">
-          <div className="flex items-center gap-2 px-6 pt-6 pb-4">
+        <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-cream-200 bg-white/60 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
+          <div className="flex items-center justify-between px-6 pt-6 pb-4">
+            <div className="flex items-center gap-2">
             <Feather size={22} className="text-sage-600" />
             <span className="font-display text-xl font-semibold text-ink-800">Life Hub</span>
+            </div>
+            <button
+              onClick={() => navigate("profile")}
+              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100"
+              aria-label="Open profile and settings"
+            >
+              <UserRound size={19} />
+            </button>
           </div>
           <Sidebar active={section} onNavigate={navigate} />
         </aside>
 
-        <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-10 pb-24 md:pb-10 max-w-4xl mx-auto w-full">
+        <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-10 pb-10 max-w-4xl mx-auto w-full">
           {renderSection(section, navigate, mealTab)}
         </main>
       </div>
 
-      <MobileNav active={section} mealTab={mealTab} onNavigate={navigate} />
       <InstallAppCard />
     </div>
   );

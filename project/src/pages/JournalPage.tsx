@@ -145,7 +145,15 @@ export function JournalPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Edit entry" : "New journal entry"}>
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setEditing(null);
+          setForm({ title: "", content: "", mood: "" });
+        }}
+        title={editing ? "Edit entry" : "New journal entry"}
+      >
         <div className="space-y-4">
           <div>
             <Label>Title</Label>

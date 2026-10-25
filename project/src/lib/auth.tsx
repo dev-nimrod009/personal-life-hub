@@ -13,8 +13,8 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithPasskey: () => Promise<{ error: string | null }>;
   registerPasskey: () => Promise<{ error: string | null }>;
-  setupLocalPin: (pin: string) => void;
-  unlockWithLocalPin: (pin: string) => boolean;
+  setupLocalPin: (pin: string) => Promise<void>;
+  unlockWithLocalPin: (pin: string) => Promise<boolean>;
   hasLocalPin: boolean;
   clearLocalPin: () => void;
   signOut: () => Promise<void>;
@@ -164,15 +164,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, offlineAccess]);
 
   const signUp = async (email: string, password: string): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error: error.message };
-    setUser((await supabase.auth.getUser()).data.user ?? null);
-    return { error: null };
+    try {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) return { error: error.message };
+      setUser((await supabase.auth.getUser()).data.user ?? null);
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Account creation failed." };
+    }
   };
 
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: error?.message ?? null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Sign-in failed." };
+    }
   };
 
   const embeddedCheck = (forSetup: boolean): string | null => {
@@ -208,18 +216,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const setupLocalPin = (pin: string) => {
-    void (async () => {
-      const hash = await hashPin(pin);
-      setStoredValue(PIN_KEY, hash);
-      setHasLocalPin(true);
-    })();
+  const setupLocalPin = async (pin: string): Promise<void> => {
+    const hash = await hashPin(pin);
+    setStoredValue(PIN_KEY, hash);
+    setHasLocalPin(true);
   };
 
-  const unlockWithLocalPin = (pin: string): boolean => {
-    // Synchronous check against stored hash — we compare against a quick hash.
-    // The real hash is async, so we store the pin temporarily for the async path.
-    return pin.length >= 4;
+  const unlockWithLocalPin = async (pin: string): Promise<boolean> => {
+    return verifyLocalPin(pin);
   };
 
   const clearLocalPin = () => {
