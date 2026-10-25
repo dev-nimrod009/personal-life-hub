@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Fingerprint, Check, Download, Upload, KeyRound, AlertTriangle } from "lucide-react";
+import { Camera, Fingerprint, Check, Download, Upload, KeyRound, AlertTriangle, Info } from "lucide-react";
 import { getProfile, updateProfile } from "../lib/data";
 import { backupToFile, restoreFromText, type BackupProgress } from "../lib/backup";
 import { useAuth } from "../lib/auth";
@@ -17,6 +17,7 @@ const AVATAR_PRESETS = [
   { emoji: "🌊", label: "Wave" },
   { emoji: "🌻", label: "Sunflower" },
 ];
+const APP_VERSION = "2.01";
 
 function compressImage(file: File, maxSize: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -82,6 +83,7 @@ export function ProfilePage() {
   const [pinConfirm, setPinConfirm] = useState("");
   const [pinError, setPinError] = useState("");
   const [pinMode, setPinMode] = useState<"setup" | "verify">("setup");
+  const [appInfoOpen, setAppInfoOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -464,9 +466,14 @@ export function ProfilePage() {
 
           <section className="bg-white rounded-2xl border border-cream-200 p-6">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-ink-500 mb-4">Account</h3>
-            <Button variant="danger" onClick={() => void signOut()}>
-              Sign out
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" onClick={() => setAppInfoOpen(true)}>
+                <Info size={16} /> App info
+              </Button>
+              <Button variant="danger" onClick={() => void signOut()}>
+                Sign out
+              </Button>
+            </div>
           </section>
         </>
       )}
@@ -515,6 +522,13 @@ export function ProfilePage() {
           >
             {pinMode === "setup" ? "Save PIN" : "Verify PIN"}
           </Button>
+        </div>
+      </Modal>
+      <Modal open={appInfoOpen} onClose={() => setAppInfoOpen(false)} title="App info">
+        <div className="space-y-2 text-sm text-ink-600">
+          <p className="font-medium text-ink-800">Life Hub</p>
+          <p>Version {APP_VERSION}</p>
+          <p>Your private journal, planner, and wellbeing hub.</p>
         </div>
       </Modal>
     </div>

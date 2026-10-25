@@ -32272,8 +32272,7 @@ function SignInScreen() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center mb-8", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl bg-sage-600 flex items-center justify-center mb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Feather, { size: 26, className: "text-white" }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-2xl font-semibold text-ink-800", children: "Life Hub" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 mt-1 text-center", children: "Your private journal, planner, and wellbeing space" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-ink-400 mt-1", children: "v2.01" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-ink-500 mt-1 text-center", children: "Your private journal, planner, and wellbeing space" })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex rounded-xl bg-cream-100 p-1 mb-6", children: ["signin", "signup"].map((m) => /* @__PURE__ */ jsxRuntimeExports.jsx(
       "button",
@@ -32492,6 +32491,7 @@ const AVATAR_PRESETS = [
   { emoji: "🌊", label: "Wave" },
   { emoji: "🌻", label: "Sunflower" }
 ];
+const APP_VERSION = "2.01";
 function compressImage(file, maxSize) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -32555,6 +32555,7 @@ function ProfilePage() {
   const [pinConfirm, setPinConfirm] = reactExports.useState("");
   const [pinError, setPinError] = reactExports.useState("");
   const [pinMode, setPinMode] = reactExports.useState("setup");
+  const [appInfoOpen, setAppInfoOpen] = reactExports.useState(false);
   const fileRef = reactExports.useRef(null);
   reactExports.useEffect(() => {
     if (!user) return;
@@ -32911,7 +32912,13 @@ function ProfilePage() {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "bg-white rounded-2xl border border-cream-200 p-6", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-semibold uppercase tracking-widest text-ink-500 mb-4", children: "Account" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { variant: "danger", onClick: () => void signOut(), children: "Sign out" })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { variant: "ghost", onClick: () => setAppInfoOpen(true), children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Info, { size: 16 }),
+            " App info"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { variant: "danger", onClick: () => void signOut(), children: "Sign out" })
+        ] })
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open: pinOpen, onClose: () => setPinOpen(false), title: pinMode === "setup" ? "Set up a local PIN" : "Enter your PIN", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
@@ -32959,6 +32966,14 @@ function ProfilePage() {
           children: pinMode === "setup" ? "Save PIN" : "Verify PIN"
         }
       )
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Modal, { open: appInfoOpen, onClose: () => setAppInfoOpen(false), title: "App info", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 text-sm text-ink-600", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-medium text-ink-800", children: "Life Hub" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+        "Version ",
+        APP_VERSION
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Your private journal, planner, and wellbeing hub." })
     ] }) })
   ] });
 }
@@ -36594,8 +36609,7 @@ function App() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-4 py-3", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Feather, { size: 20, className: "text-sage-600" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-lg font-semibold text-ink-800", children: mobileTitle }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-ink-400", children: "v2.01" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-lg font-semibold text-ink-800", children: mobileTitle })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(

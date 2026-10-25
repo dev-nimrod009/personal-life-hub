@@ -155,7 +155,6 @@ export default function App() {
           <div className="flex items-center gap-2">
             <Feather size={20} className="text-sage-600" />
             <span className="font-display text-lg font-semibold text-ink-800">{mobileTitle}</span>
-            <span className="text-[10px] text-ink-400">v2.01</span>
           </div>
           <div className="flex items-center gap-1">
             <button
