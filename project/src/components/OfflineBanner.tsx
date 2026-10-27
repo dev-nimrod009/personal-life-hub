@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CloudOff, RefreshCw, CloudCheck } from "lucide-react";
+import { CloudOff, RefreshCw, CheckCircle } from "lucide-react";
 import { onSyncStatus } from "../lib/data";
 
 export function OfflineBanner() {
@@ -47,7 +47,7 @@ export function OfflineBanner() {
   const showIcon = () => {
     if (offline) return <CloudOff size={16} />;
     if (syncing) return <RefreshCw size={16} className="animate-spin" />;
-    return <CloudCheck size={16} />;
+    return <CheckCircle size={16} />;
   };
 
   const bgColor = offline ? "bg-honey-500" : syncing ? "bg-sage-500" : "bg-sage-400";
