@@ -5,6 +5,12 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   base: "/",
+  server: {
+    host: "0.0.0.0",
+    port: 5000,
+    strictPort: true,
+    allowedHosts: true,
+  },
   build: {
     sourcemap: false,
     minify: false,
