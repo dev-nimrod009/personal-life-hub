@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Bell, Plus, Trash2, CheckCircle2, Circle, CalendarClock } from "lucide-react";
 import { listReminders, upsertReminder, setReminderDone, deleteReminder } from "../lib/data";
 import type { Reminder } from "../lib/types";
@@ -20,7 +21,6 @@ export function RemindersPage() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setLoading(true);
     try {
       setReminders(await listReminders());
       setError("");
@@ -31,9 +31,7 @@ export function RemindersPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const startNew = () => {
     setEditing(null);

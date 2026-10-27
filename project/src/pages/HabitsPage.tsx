@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { CheckCircle2, Plus, Trash2 } from "lucide-react";
 import { listHabits, listHabitLogs, createHabit, deleteHabit, toggleHabitLog } from "../lib/data";
 import type { Habit, HabitLog } from "../lib/types";
@@ -36,7 +37,6 @@ export function HabitsPage() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setLoading(true);
     try {
       const [habitsList, logsList] = await Promise.all([listHabits(), listHabitLogs()]);
       setHabits(habitsList);
@@ -49,9 +49,7 @@ export function HabitsPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const add = async () => {
     if (!form.name.trim()) return;

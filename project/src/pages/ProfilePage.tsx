@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Camera, Fingerprint, Check, Download, Upload, KeyRound, AlertTriangle, Info } from "lucide-react";
 import { getProfile, updateProfile } from "../lib/data";
 import { backupToFile, restoreFromText, type BackupProgress } from "../lib/backup";
@@ -86,28 +87,26 @@ export function ProfilePage() {
   const [appInfoOpen, setAppInfoOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  useLiveLoad(async () => {
     if (!user) return;
-    void (async () => {
-      try {
-        const data = await getProfile(user.id, user.email ?? undefined);
-        if (data) {
-          setProfile(data);
-          setForm({
-            full_name: data.full_name ?? "",
-            avatar_url: data.avatar_url ?? "",
-            bio: data.bio ?? "",
-            location: data.location ?? "",
-            birthday: data.birthday ?? "",
-          });
-        }
-        setError("");
-      } catch {
-        setError("Could not read your profile.");
-      } finally {
-        setLoading(false);
+    try {
+      const data = await getProfile(user.id, user.email ?? undefined);
+      if (data) {
+        setProfile(data);
+        setForm({
+          full_name: data.full_name ?? "",
+          avatar_url: data.avatar_url ?? "",
+          bio: data.bio ?? "",
+          location: data.location ?? "",
+          birthday: data.birthday ?? "",
+        });
       }
-    })();
+      setError("");
+    } catch {
+      setError("Could not read your profile.");
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
 
   const save = async () => {

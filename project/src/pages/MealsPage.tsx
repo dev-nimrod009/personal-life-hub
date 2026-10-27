@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Plus, Trash2, Pencil, Wallet, Salad, BookOpen, ShoppingCart, FlaskConical, Check } from "lucide-react";
 import {
   listMeals,
@@ -131,7 +132,6 @@ function WeekPlan() {
   const [picker, setPicker] = useState<{ date: string; mealType: string } | null>(null);
 
   const load = async () => {
-    setLoading(true);
     try {
       const [mealsList, libraryList, budgetValue] = await Promise.all([listMeals(), listMealLibrary(), getWeeklyBudget()]);
       setMeals(mealsList);
@@ -145,9 +145,7 @@ function WeekPlan() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysISO(weekStart, i)), [weekStart]);
 
@@ -424,7 +422,6 @@ function MealLibrary() {
   const [form, setForm] = useState({ name: "", meal_type: "Dinner", default_cost: "", emoji: "🍽️", notes: "", recipe_id: "" });
 
   const load = async () => {
-    setLoading(true);
     try {
       const [libraryList, recipeList] = await Promise.all([listMealLibrary(), listRecipes()]);
       setItems(libraryList);
@@ -437,7 +434,7 @@ function MealLibrary() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useLiveLoad(load);
 
   const save = async () => {
     if (!form.name.trim()) return;
@@ -566,7 +563,6 @@ function Recipes() {
   const [form, setForm] = useState({ title: "", ingredients: "", instructions: "", servings: "2" });
 
   const load = async () => {
-    setLoading(true);
     try {
       setRecipes(await listRecipes());
       setError("");
@@ -577,7 +573,7 @@ function Recipes() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useLiveLoad(load);
 
   const save = async () => {
     if (!form.title.trim()) return;
@@ -700,7 +696,6 @@ function Pantry() {
   const [unit, setUnit] = useState("");
 
   const load = async () => {
-    setLoading(true);
     try {
       setItems(await listPantry());
       setError("");
@@ -711,7 +706,7 @@ function Pantry() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useLiveLoad(load);
 
   const add = async () => {
     if (!name.trim()) return;
@@ -808,7 +803,6 @@ function Shopping() {
   const [cost, setCost] = useState("");
 
   const load = async () => {
-    setLoading(true);
     try {
       const [shopList, pantryList] = await Promise.all([listShopping(), listPantry()]);
       setItems(shopList);
@@ -821,7 +815,7 @@ function Shopping() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useLiveLoad(load);
 
   const add = async () => {
     if (!name.trim()) return;

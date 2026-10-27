@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Inbox, Plus, Trash2, ClipboardList, Notebook } from "lucide-react";
 import { listInbox, addInboxItem, deleteInboxItem, addDayPlannerTask, upsertNote } from "../lib/data";
 import type { InboxItem } from "../lib/types";
@@ -23,9 +24,7 @@ export function BrainDumpPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const add = async () => {
     if (!content.trim()) return;

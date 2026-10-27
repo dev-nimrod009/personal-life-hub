@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Notebook, Plus, Trash2, Pin, PinOff, Pencil, Lock, Unlock, Eye, EyeOff, ChevronDown, Shield } from "lucide-react";
 import { listNotes, upsertNote, setNotePinned, deleteNote, getPrivatePasswordHash, setPrivatePasswordHash, clearNotePasswordHashes } from "../lib/data";
 import type { Note } from "../lib/types";
@@ -74,9 +75,7 @@ export function NotesPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const startNew = () => {
     setEditing(null);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Heart, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { listDiary, upsertDiary, deleteDiary } from "../lib/data";
 import type { DiaryEntry } from "../lib/types";
@@ -13,6 +14,7 @@ export function DiaryPage() {
   const [content, setContent] = useState("");
   const [entryId, setEntryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const load = async () => {
     try {
@@ -25,9 +27,7 @@ export function DiaryPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   useEffect(() => {
     const existing = entries.find((e) => e.entry_date === selectedDate);
@@ -48,6 +48,8 @@ export function DiaryPage() {
     try {
       await upsertDiary(selectedDate, content, entryId);
       setError("");
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
       await load();
     } catch {
       setError("Could not save the page.");
@@ -73,6 +75,7 @@ export function DiaryPage() {
       <SectionHeader title="Diary" subtitle="One page per day, like a paper diary" />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
+      {saveSuccess && <div className="mb-4 rounded-xl bg-sage-100 text-sage-700 text-sm px-4 py-3">Saved successfully!</div>}
 
       <div className="bg-white rounded-2xl border border-cream-200 p-6">
         <div className="flex items-center justify-between mb-4">

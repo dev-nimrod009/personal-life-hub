@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Menu, X, Feather, UserRound } from "lucide-react";
 import { Sidebar, CompactNav, type SectionId } from "./components/nav";
 import { InstallAppCard } from "./components/InstallAppCard";
+import { OfflineBanner } from "./components/OfflineBanner";
+import { hydrateFromNetwork } from "./lib/data";
 import { useAuth } from "./lib/auth";
 import { SignInScreen } from "./pages/SignInScreen";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -83,6 +85,10 @@ export default function App() {
   const [section, setSection] = useState<SectionId>("dashboard");
   const [mealTab, setMealTab] = useState<MealTab>("week");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (session || offlineAccess) void hydrateFromNetwork();
+  }, [session, offlineAccess]);
 
   useEffect(() => {
     window.history.replaceState(
@@ -175,11 +181,20 @@ export default function App() {
           </div>
         </div>
         {menuOpen && (
-          <div className="absolute left-0 top-full z-50 border-r border-b border-cream-200 bg-white shadow-lg">
-            <CompactNav active={section} onNavigate={navigate} />
+          <div
+            className="fixed inset-0 z-50"
+            onClick={() => setMenuOpen(false)}
+          >
+            <div
+              className="absolute left-0 top-[57px] w-[25vw] min-w-[220px] max-w-[320px] max-h-[calc(100vh-64px)] overflow-y-auto p-3 border-r border-b border-cream-200 bg-white shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <CompactNav active={section} onNavigate={navigate} />
+            </div>
           </div>
         )}
       </header>
+      <OfflineBanner />
 
       <div className="flex">
         <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-cream-200 bg-white/60 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">

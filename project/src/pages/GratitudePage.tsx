@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Salad, Plus, Trash2 } from "lucide-react";
 import { listGratitude, addGratitude, deleteGratitude } from "../lib/data";
 import type { GratitudeEntry } from "../lib/types";
@@ -13,7 +14,6 @@ export function GratitudePage() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setLoading(true);
     try {
       setEntries(await listGratitude());
       setError("");
@@ -24,9 +24,7 @@ export function GratitudePage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const add = async () => {
     if (!content.trim()) return;

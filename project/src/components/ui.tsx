@@ -11,9 +11,9 @@ interface ModalProps {
 export function Modal({ open, onClose, title, children }: ModalProps) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center pt-16 sm:pt-0 px-4">
       <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-6 max-h-[85vh] overflow-y-auto animate-pop-in">
+      <div className="relative w-full sm:max-w-lg bg-white rounded-2xl shadow-xl p-6 max-h-[85vh] overflow-y-auto animate-pop-in">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-xl font-semibold text-ink-800">{title}</h3>
           <button

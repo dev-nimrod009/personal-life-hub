@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Plus, Trash2, Search, Quote } from "lucide-react";
 import { listQuotes, addQuote, deleteQuote } from "../lib/data";
 import type { SavedQuote } from "../lib/types";
@@ -32,9 +33,7 @@ export function QuoteVaultPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const save = async () => {
     if (!form.text.trim()) return;

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Plus, Trash2, Wallet, TrendingUp, TrendingDown, ArrowLeftRight, ShoppingCart, Info, Check } from "lucide-react";
 import {
   listBudgetItems,
@@ -30,7 +31,6 @@ export function BudgetPage() {
   });
 
   const load = async () => {
-    setLoading(true);
     try {
       const [budgetList, shopList] = await Promise.all([listBudgetItems(), listShopping()]);
       setItems(budgetList);
@@ -43,7 +43,7 @@ export function BudgetPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useLiveLoad(load);
 
   const save = async () => {
     const amount = Number(form.amount);
@@ -81,8 +81,10 @@ export function BudgetPage() {
       if (item.kind === "income") inc += item.amount;
       else if (item.kind === "expense") exp += item.amount;
     }
+    const boughtShoppingCost = shopping.filter((item) => item.bought).reduce((sum, item) => sum + item.est_cost, 0);
+    exp += boughtShoppingCost;
     return { income: inc, expenses: exp, balance: inc - exp };
-  }, [items]);
+  }, [items, shopping]);
 
   const stillToBuy = useMemo(
     () => shopping.filter((item) => !item.bought).reduce((sum, item) => sum + item.est_cost, 0),

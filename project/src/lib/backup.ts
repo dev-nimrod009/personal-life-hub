@@ -1,5 +1,6 @@
-import { supabase } from "./supabase";
-import type { Row } from "./backupTypes";
+import type { Row as BackupRow } from "./backupTypes";
+import { listCachedTable, restoreRowsLocally } from "./data";
+import type { Row } from "./db";
 
 const BACKUP_TABLES = [
   "journal_entries",
@@ -40,9 +41,7 @@ export async function createBackup(onProgress?: (progress: BackupProgress) => vo
   onProgress?.({ backedUp, remaining: total, total });
   const data: Record<string, unknown[]> = {};
   for (const table of BACKUP_TABLES) {
-    const { data: rows, error } = await supabase.from(table).select("*");
-    if (error) throw new Error(`Could not read ${table}: ${error.message}`);
-    const tableRows = (rows as unknown[]) ?? [];
+    const tableRows = await listCachedTable(table);
     data[table] = tableRows;
     backedUp += tableRows.length;
     onProgress?.({ backedUp, remaining: Math.max(0, total - backedUp), total });
@@ -92,17 +91,12 @@ export async function restoreFromText(text: string): Promise<{ restored: number;
   for (const table of BACKUP_TABLES) {
     const rows = backup.data[table];
     if (!Array.isArray(rows) || rows.length === 0) continue;
-    const clean = rows.filter((r): r is Record<string, unknown> =>
-      typeof r === "object" && r !== null && typeof (r as Row).id === "string"
+    const clean = rows.filter(
+      (r): r is Row => typeof r === "object" && r !== null && typeof (r as BackupRow).id === "string"
     );
     if (clean.length === 0) continue;
-    const { data: inserted, error } = await supabase
-      .from(table)
-      .upsert(clean, { onConflict: "id", ignoreDuplicates: true })
-      .select("id");
-    if (error) throw new Error(`Could not restore ${table}: ${error.message}`);
-    restored += (inserted as unknown[])?.length ?? 0;
-    skipped += clean.length - ((inserted as unknown[])?.length ?? 0);
+    await restoreRowsLocally(table, clean);
+    restored += clean.length;
   }
   return { restored, skipped };
 }
@@ -110,9 +104,7 @@ export async function restoreFromText(text: string): Promise<{ restored: number;
 export async function countRows(): Promise<number> {
   let total = 0;
   for (const table of BACKUP_TABLES) {
-    const { count, error } = await supabase.from(table).select("id", { count: "exact", head: true });
-    if (error) throw new Error(`Could not count ${table}: ${error.message}`);
-    total += count ?? 0;
+    total += (await listCachedTable(table)).length;
   }
   return total;
 }

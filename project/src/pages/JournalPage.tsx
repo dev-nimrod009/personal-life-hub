@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BookOpen, Plus, Trash2, Pencil, Search } from "lucide-react";
 import { listJournal, upsertJournal, deleteJournal } from "../lib/data";
 import type { JournalEntry } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
 import { formatDay } from "../lib/utils";
+import { useLiveLoad } from "../lib/useLiveLoad";
 
 const MOODS = ["", "Happy", "Calm", "Tired", "Sad", "Anxious", "Excited", "Grateful"];
 
@@ -28,9 +29,7 @@ export function JournalPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const startNew = () => {
     setEditing(null);

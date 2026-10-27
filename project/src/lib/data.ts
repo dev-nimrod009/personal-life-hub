@@ -23,71 +23,19 @@ import type {
   BudgetItem,
 } from "./types";
 import { todayISO } from "./utils";
-import { getStoredValue, setStoredValue } from "./storage";
-
-type Row = Record<string, unknown>;
-
-// ---------- offline storage ----------
-
-const QUEUE_KEY = "lifehub:sync-queue";
-const cacheKey = (table: string) => `lifehub:cache:${table}`;
-
-function readLocal(table: string): Row[] {
-  try {
-    const parsed: unknown = JSON.parse(getStoredValue(cacheKey(table)) ?? "[]");
-    return Array.isArray(parsed)
-      ? parsed.filter((row): row is Row => typeof row === "object" && row !== null && !Array.isArray(row))
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeLocal(table: string, rows: Row[]): void {
-  try {
-    setStoredValue(cacheKey(table), JSON.stringify(rows));
-  } catch {
-    // storage full or unavailable - cloud remains the source of truth
-  }
-}
-
-interface SyncItem {
-  ts: number;
-  table: string;
-  kind: "insert" | "update" | "delete";
-  row: Row;
-  changes?: Record<string, unknown>;
-}
-
-function readQueue(): SyncItem[] {
-  try {
-    const parsed: unknown = JSON.parse(getStoredValue(QUEUE_KEY) ?? "[]");
-    return Array.isArray(parsed)
-      ? parsed.filter(
-          (item): item is SyncItem =>
-            typeof item === "object" &&
-            item !== null &&
-            "table" in item &&
-            typeof item.table === "string" &&
-            "kind" in item &&
-            (item.kind === "insert" || item.kind === "update" || item.kind === "delete") &&
-            "row" in item &&
-            typeof item.row === "object" &&
-            item.row !== null
-        )
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeQueue(items: SyncItem[]): void {
-  try {
-    setStoredValue(QUEUE_KEY, JSON.stringify(items));
-  } catch {
-    // nothing we can do, keep the in-memory state consistent
-  }
-}
+import { getStoredValue } from "./storage";
+import {
+  applySyncItem,
+  applyLocalItem,
+  DATA_TABLES,
+  enqueueItem,
+  readLocalTable,
+  readQueue,
+  replaceQueue,
+  writeLocalTable,
+  type Row,
+  type SyncItem,
+} from "./db";
 
 function uid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -95,21 +43,42 @@ function uid(): string {
 }
 
 let syncing = false;
+let pendingCount = 0;
 const syncListeners = new Set<(syncing: boolean, pending: number) => void>();
+const dataListeners = new Set<() => void>();
 
 export function onSyncStatus(fn: (syncing: boolean, pending: number) => void): () => void {
   syncListeners.add(fn);
-  fn(syncing, readQueue().length);
+  fn(syncing, pendingCount);
   return () => syncListeners.delete(fn);
 }
 
+export function subscribeToData(fn: () => void): () => void {
+  dataListeners.add(fn);
+  return () => dataListeners.delete(fn);
+}
+
 function notify(): void {
-  for (const fn of syncListeners) fn(syncing, readQueue().length);
+  for (const fn of syncListeners) fn(syncing, pendingCount);
+}
+
+function notifyData(): void {
+  for (const fn of dataListeners) fn();
+}
+
+async function refreshPending(): Promise<number> {
+  pendingCount = (await readQueue()).length;
+  notify();
+  return pendingCount;
+}
+
+function isOnline(): boolean {
+  return typeof navigator === "undefined" || navigator.onLine;
 }
 
 async function runRemote(item: SyncItem): Promise<void> {
   if (item.kind === "insert") {
-    const { error } = await supabase.from(item.table).insert(item.row);
+    const { error } = await supabase.from(item.table).upsert(item.row, { onConflict: "id" });
     if (error) throw new Error(error.message);
   } else if (item.kind === "update") {
     const { error } = await supabase.from(item.table).update(item.changes ?? {}).eq("id", item.row.id as string);
@@ -122,13 +91,13 @@ async function runRemote(item: SyncItem): Promise<void> {
 
 function looksOffline(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
-  return (typeof navigator !== "undefined" && !navigator.onLine) || /fetch|network|load failed|timed? ?out|failed to fetch/i.test(msg);
+  return !isOnline() || /fetch|network|load failed|timed? ?out|failed to fetch|failed to load/i.test(msg);
 }
 
 export async function checkBackendConnectivity(): Promise<boolean> {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-  if (!navigator.onLine || !url || !anonKey) return false;
+  if (!isOnline() || !url || !anonKey) return false;
 
   try {
     const response = await fetch(`${url}/auth/v1/health`, {
@@ -142,90 +111,123 @@ export async function checkBackendConnectivity(): Promise<boolean> {
   }
 }
 
-async function remoteOrQueue(item: Omit<SyncItem, "ts">): Promise<void> {
-  writeLocalForItem(item);
+async function remoteOrQueue(item: Omit<SyncItem, "id" | "ts">): Promise<void> {
+  await applyLocalItem(item);
   const full: SyncItem = { ...item, ts: Date.now() };
+  if (!isOnline()) {
+    await enqueueItem(full);
+    await refreshPending();
+    return;
+  }
   try {
-    await runRemote(item.kind === "update" ? { ...full, changes: full.changes ?? {} } : full);
-    notify();
+    await runRemote(full);
+    await refreshPending();
   } catch (e) {
     if (!looksOffline(e)) throw e;
-    writeQueue([...readQueue(), full]);
-    notify();
+    await enqueueItem(full);
+    await refreshPending();
   }
-}
-
-function writeLocalForItem(item: Omit<SyncItem, "ts">): void {
-  const rows = [...readLocal(item.table)];
-  const id = item.row.id as string;
-  if (item.kind === "insert") {
-    const idx = rows.findIndex((r) => r.id === id);
-    if (idx >= 0) rows[idx] = item.row;
-    else rows.push(item.row);
-  } else if (item.kind === "update") {
-    const idx = rows.findIndex((r) => r.id === id);
-    if (idx >= 0) rows[idx] = { ...rows[idx], ...(item.changes ?? {}) };
-    else rows.push({ ...item.row, ...(item.changes ?? {}) });
-  } else {
-    const idx = rows.findIndex((r) => r.id === id);
-    if (idx >= 0) rows.splice(idx, 1);
-  }
-  writeLocal(item.table, rows);
 }
 
 export async function flushSync(): Promise<void> {
-  if (syncing) return;
-  const items = readQueue();
-  if (items.length === 0) return;
+  if (syncing || !isOnline()) return;
+  const items = await readQueue();
+  if (items.length === 0) {
+    pendingCount = 0;
+    notify();
+    return;
+  }
   syncing = true;
+  pendingCount = items.length;
   notify();
   const remaining: SyncItem[] = [];
   for (const item of items) {
+    if (!isOnline()) {
+      remaining.push(item);
+      remaining.push(...items.slice(items.indexOf(item) + 1));
+      break;
+    }
     try {
       await runRemote(item);
     } catch {
       remaining.push(item);
     }
   }
-  writeQueue(remaining);
+  await replaceQueue(remaining);
+  pendingCount = remaining.length;
   syncing = false;
   notify();
 }
 
-if (typeof window !== "undefined") {
-  window.addEventListener("online", () => void flushSync());
-  window.setInterval(() => {
-    if (navigator.onLine) void flushSync();
-  }, 15000);
-  void flushSync();
-}
+const inFlightPulls = new Map<string, Promise<boolean>>();
 
-// ---------- offline-aware reads ----------
+async function pullTable(table: string): Promise<boolean> {
+  if (!isOnline()) return false;
+  const existing = inFlightPulls.get(table);
+  if (existing) return existing;
 
-async function fetchAll(table: string): Promise<Row[]> {
-  try {
+  const work = (async () => {
     const { data, error } = await supabase.from(table).select("*");
     if (error) throw new Error(error.message);
-    const rows = (data ?? []) as Row[];
-    const ids = new Set(rows.map((r) => r.id));
-    const cache = cacheWithoutRemoteDeleted(table, ids);
-    writeLocal(table, [...rows, ...cache]);
-    return [...rows, ...cache];
-  } catch (e) {
-    // Any read failure (offline, flaky network, timeout) falls back to the last
-    // saved copy on this device so the app is always usable offline.
-    const cached = readLocal(table);
-    if (cached.length > 0 || looksOffline(e)) return cached;
-    throw e;
-  }
+    const cloud = ((data ?? []) as Row[]).filter((row) => typeof row.id === "string");
+    const queue = await readQueue();
+    let merged = cloud.map((row) => ({ ...row, id: String(row.id) }));
+    for (const item of queue) {
+      if (item.table === table) merged = applySyncItem(merged, item);
+    }
+    await writeLocalTable(table, merged);
+    return true;
+  })()
+    .catch(() => false)
+    .finally(() => {
+      inFlightPulls.delete(table);
+    });
+
+  inFlightPulls.set(table, work);
+  return work;
 }
 
-// Rows the user deleted locally (queue has a pending delete) should not reappear
-// after a cloud refresh.
-function cacheWithoutRemoteDeleted(table: string, cloudIds: Set<unknown>): Row[] {
-  return readQueue()
-    .filter((s) => s.table === table && s.kind === "delete")
-    .reduce((rows, s) => rows.filter((r) => r.id !== s.row.id), readLocal(table).filter((r) => !cloudIds.has(r.id)));
+export async function hydrateFromNetwork(): Promise<void> {
+  if (!isOnline()) {
+    await refreshPending();
+    return;
+  }
+  await flushSync();
+  let changed = false;
+  for (const table of DATA_TABLES) {
+    if (!isOnline()) break;
+    if (await pullTable(table)) changed = true;
+  }
+  await refreshPending();
+  if (changed) notifyData();
+}
+
+async function fetchAll(table: string): Promise<Row[]> {
+  return readLocalTable(table);
+}
+
+export async function listCachedTable(table: string): Promise<Row[]> {
+  return readLocalTable(table);
+}
+
+export async function restoreRowsLocally(table: string, rows: Row[]): Promise<void> {
+  let current = await readLocalTable(table);
+  for (const row of rows) {
+    current = applySyncItem(current, { table, kind: "insert", row });
+    await enqueueItem({ ts: Date.now(), table, kind: "insert", row });
+  }
+  await writeLocalTable(table, current);
+  await refreshPending();
+  notifyData();
+  if (isOnline()) void flushSync();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => void hydrateFromNetwork());
+  window.setInterval(() => {
+    if (isOnline()) void flushSync();
+  }, 15000);
+  void refreshPending();
 }
 
 function byDateDesc(a: Row, b: Row): number {
@@ -234,23 +236,57 @@ function byDateDesc(a: Row, b: Row): number {
 
 // ---------- profile ----------
 
-export async function getProfile(userId: string, email?: string): Promise<Profile | null> {
-  const rows = await fetchAll("profiles");
-  const own = rows.find((r) => r.id === userId);
-  if (own) {
-    return {
-      id: userId,
-      email: String(own.email ?? ""),
-      full_name: String(own.full_name ?? ""),
-      avatar_url: String(own.avatar_url ?? ""),
-      bio: String(own.bio ?? ""),
-      location: String(own.location ?? ""),
-      birthday: typeof own.birthday === "string" ? own.birthday : null,
-      created_at: String(own.created_at ?? new Date().toISOString()),
-      updated_at: String(own.updated_at ?? new Date().toISOString()),
-    };
+function mapProfile(userId: string, own: Row): Profile {
+  return {
+    id: userId,
+    email: String(own.email ?? ""),
+    full_name: String(own.full_name ?? ""),
+    avatar_url: String(own.avatar_url ?? ""),
+    bio: String(own.bio ?? ""),
+    location: String(own.location ?? ""),
+    birthday: typeof own.birthday === "string" ? own.birthday : null,
+    created_at: String(own.created_at ?? new Date().toISOString()),
+    updated_at: String(own.updated_at ?? new Date().toISOString()),
+  };
+}
+
+async function cachedUser(): Promise<{ id: string; email?: string } | null> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (data.user) return { id: data.user.id, email: data.user.email ?? undefined };
+  } catch {
+    // session may still be readable from the local cache below
   }
-  const profileEmail = email ?? (await supabase.auth.getUser()).data.user?.email;
+  try {
+    const cached: unknown = JSON.parse(getStoredValue("lifehub:offline-user") ?? "null");
+    if (typeof cached === "object" && cached !== null && "id" in cached && typeof cached.id === "string") {
+      const email = "email" in cached && typeof cached.email === "string" ? cached.email : undefined;
+      return { id: cached.id, email };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export async function getProfile(userId: string, email?: string): Promise<Profile | null> {
+  let rows = await fetchAll("profiles");
+  let own = rows.find((r) => r.id === userId);
+  if (own) return mapProfile(userId, own);
+
+  if (isOnline()) {
+    const pulled = await pullTable("profiles");
+    if (pulled) {
+      rows = await readLocalTable("profiles");
+      own = rows.find((r) => r.id === userId);
+      if (own) {
+        notifyData();
+        return mapProfile(userId, own);
+      }
+    }
+  }
+
+  const profileEmail = email ?? (await cachedUser())?.email;
   if (!profileEmail) return null;
   const now = new Date().toISOString();
   const row = {
@@ -693,8 +729,7 @@ export async function getWeeklyBudget(): Promise<number> {
 }
 
 export async function setWeeklyBudget(amount: number): Promise<void> {
-  const { data: authData } = await supabase.auth.getUser();
-  const userId = authData.user?.id ?? "";
+  const userId = (await cachedUser())?.id ?? "";
   const rows = await fetchAll("app_settings");
   const existing = rows.find((r) => r.user_id === userId && r.weekly_budget != null);
   if (existing) {
@@ -714,16 +749,14 @@ export async function setWeeklyBudget(amount: number): Promise<void> {
 }
 
 export async function getPrivatePasswordHash(): Promise<string> {
-  const { data: authData } = await supabase.auth.getUser();
-  const userId = authData.user?.id ?? "";
+  const userId = (await cachedUser())?.id ?? "";
   const rows = await fetchAll("app_settings");
   const row = rows.find((r) => r.user_id === userId && r.private_password_hash);
   return String(row?.private_password_hash ?? "");
 }
 
 export async function setPrivatePasswordHash(hash: string): Promise<void> {
-  const { data: authData } = await supabase.auth.getUser();
-  const userId = authData.user?.id ?? "";
+  const userId = (await cachedUser())?.id ?? "";
   const rows = await fetchAll("app_settings");
   const existing = rows.find((r) => r.user_id === userId);
   if (existing) {

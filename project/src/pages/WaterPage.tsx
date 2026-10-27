@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Plus, Minus } from "lucide-react";
 
 import { listWater, upsertWater } from "../lib/data";
@@ -24,9 +25,7 @@ export function WaterPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(() => load(false));
 
   const today = intakes.find((i) => i.intake_date === todayISO());
   const glasses = today?.glasses ?? 0;

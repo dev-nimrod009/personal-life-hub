@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { ClipboardList, Plus, Trash2, CheckCircle2, Circle } from "lucide-react";
 import { listDayPlanner, addDayPlannerTask, setDayPlannerDone, deleteDayPlanner } from "../lib/data";
 import type { DayPlanTask } from "../lib/types";
@@ -23,9 +24,7 @@ export function DayPlansPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const add = async () => {
     if (!newTask.trim()) return;

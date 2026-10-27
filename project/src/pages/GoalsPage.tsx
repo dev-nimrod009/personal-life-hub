@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import { Target, Plus, Trash2, CheckCircle2, CalendarDays, CalendarRange, X } from "lucide-react";
 import {
   listGoals,
@@ -31,7 +32,6 @@ export function GoalsPage() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setLoading(true);
     try {
       const [goalsList, stepsList] = await Promise.all([listGoals(), listAllGoalSteps()]);
       setGoals(goalsList);
@@ -44,9 +44,7 @@ export function GoalsPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   const add = async () => {
     if (!form.title.trim()) return;

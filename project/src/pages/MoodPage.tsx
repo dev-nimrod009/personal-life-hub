@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLiveLoad } from "../lib/useLiveLoad";
 
 import { listMoods, upsertMood } from "../lib/data";
 import type { Mood } from "../lib/types";
@@ -39,9 +40,7 @@ export function MoodPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useLiveLoad(load);
 
   useEffect(() => {
     const existing = moods.find((m) => m.mood_date === selectedDate);

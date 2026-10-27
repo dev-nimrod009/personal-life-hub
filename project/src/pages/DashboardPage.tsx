@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Bell, ClipboardList, CloudOff, RefreshCw, CupSoda, Smile, Sparkles } from "lucide-react";
-import { listDayPlanner, listReminders, listHabits, listHabitLogs, listMoods, listWater, onSyncStatus, toggleHabitLog, upsertWater, getProfile, checkBackendConnectivity } from "../lib/data";
+import { useState } from "react";
+import { Bell, ClipboardList, CupSoda, Smile, Sparkles } from "lucide-react";
+import { listDayPlanner, listReminders, listHabits, listHabitLogs, listMoods, listWater, toggleHabitLog, upsertWater, getProfile } from "../lib/data";
+import { useLiveLoad } from "../lib/useLiveLoad";
 import type { DayPlanTask, Habit, HabitLog, Mood, Reminder, WaterIntake, Profile } from "../lib/types";
 import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui";
@@ -8,8 +9,6 @@ import { formatDay, todayISO } from "../lib/utils";
 
 export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void }) {
   const { user } = useAuth();
-  const [sync, setSync] = useState<{ pending: number }>({ pending: 0 });
-  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [tasks, setTasks] = useState<DayPlanTask[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -49,30 +48,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  useEffect(() => onSyncStatus((_active, pending) => setSync({ pending })), []);
-
-  useEffect(() => {
-    const updateConnectivity = () => {
-      if (!navigator.onLine) {
-        setApiOnline(false);
-        return;
-      }
-      void checkBackendConnectivity().then(setApiOnline);
-    };
-    updateConnectivity();
-    window.addEventListener("online", updateConnectivity);
-    window.addEventListener("offline", updateConnectivity);
-    const interval = window.setInterval(updateConnectivity, 20_000);
-    return () => {
-      window.removeEventListener("online", updateConnectivity);
-      window.removeEventListener("offline", updateConnectivity);
-      window.clearInterval(interval);
-    };
-  }, []);
+  useLiveLoad(() => load(false));
 
   const doneCount = tasks.filter((t) => t.done).length;
   const todayMood = moods.find((m) => m.mood_date === today);
@@ -131,24 +107,6 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {apiOnline === false && (
-            <div
-              className={`sm:col-span-2 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${
-                sync.pending > 0 ? "bg-honey-500/15 text-amber-700" : "bg-cream-100 text-ink-500"
-              }`}
-            >
-              {sync.pending > 0 ? (
-                <>
-                  <RefreshCw size={15} /> Offline — {sync.pending} pending item
-                  {sync.pending === 1 ? "" : "s"} will sync when internet returns
-                </>
-              ) : (
-                <>
-                  <CloudOff size={15} /> Offline — entries are saved on this phone and will sync automatically
-                </>
-              )}
-            </div>
-          )}
           <section className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer" onClick={() => onNavigate("dayplans")}>
             <div className="flex items-center gap-2 text-ink-500 mb-3">
               <ClipboardList size={16} />
