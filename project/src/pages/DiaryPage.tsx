@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLiveLoad } from "../lib/useLiveLoad";
-import { Heart, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, Trash2, RotateCcw } from "lucide-react";
 import { listDiary, upsertDiary, deleteDiary } from "../lib/data";
 import type { DiaryEntry } from "../lib/types";
 import { Button, EmptyState, SectionHeader, Textarea } from "../components/ui";
@@ -98,9 +98,14 @@ export function DiaryPage() {
           className="border-0 bg-cream-50/60 px-4 py-3 text-[15px] leading-relaxed"
         />
         <div className="flex items-center justify-between mt-3">
-          <Button variant="danger" size="sm" onClick={remove} disabled={!entryId}>
-            <Trash2 size={13} /> Delete page
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => { setContent(""); setEntryId(null); }} disabled={!content.trim()}>
+              <RotateCcw size={13} /> Clear
+            </Button>
+            <Button variant="danger" size="sm" onClick={remove} disabled={!entryId}>
+              <Trash2 size={13} /> Delete page
+            </Button>
+          </div>
           <Button onClick={save} disabled={saving}>
             {saving ? "Saving..." : entryId ? "Update page" : "Save page"}
           </Button>

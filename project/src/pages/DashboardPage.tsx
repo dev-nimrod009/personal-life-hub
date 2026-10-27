@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Bell, ClipboardList, CupSoda, Smile, Sparkles } from "lucide-react";
-import { listDayPlanner, listReminders, listHabits, listHabitLogs, listMoods, listWater, toggleHabitLog, upsertWater, getProfile } from "../lib/data";
+import { Bell, ClipboardList, CupSoda, Smile, Sparkles, Utensils } from "lucide-react";
+import { listDayPlanner, listReminders, listHabits, listHabitLogs, listMoods, listWater, listMeals, toggleHabitLog, upsertWater, getProfile } from "../lib/data";
 import { useLiveLoad } from "../lib/useLiveLoad";
-import type { DayPlanTask, Habit, HabitLog, Mood, Reminder, WaterIntake, Profile } from "../lib/types";
+import type { DayPlanTask, Habit, HabitLog, Mood, Reminder, WaterIntake, Profile, Meal } from "../lib/types";
 import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui";
 import { formatDay, todayISO } from "../lib/utils";
@@ -15,6 +15,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [moods, setMoods] = useState<Mood[]>([]);
   const [intakes, setIntakes] = useState<WaterIntake[]>([]);
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [waterSaving, setWaterSaving] = useState(false);
@@ -25,13 +26,14 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
   const load = async (withSkeleton = true) => {
     if (withSkeleton) setLoading(true);
     try {
-      const [allTasks, allReminders, habitsList, logsList, latestMoods, latestWater, profileData] = await Promise.all([
+      const [allTasks, allReminders, habitsList, logsList, latestMoods, latestWater, allMeals, profileData] = await Promise.all([
         listDayPlanner(),
         listReminders(),
         listHabits(),
         listHabitLogs(),
         listMoods(),
         listWater(),
+        listMeals(),
         user ? getProfile(user.id, user.email ?? undefined) : Promise.resolve(null),
       ]);
       setTasks(allTasks.filter((t) => t.plan_date === today));
@@ -40,6 +42,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
       setLogs(logsList);
       if (latestMoods[0]) setMoods([latestMoods[0]]);
       if (latestWater[0]) setIntakes([latestWater[0]]);
+      setMeals(allMeals.filter((m) => m.meal_date === today));
       if (profileData) setProfile(profileData);
     } catch {
       // dashboard stays empty on read failure
@@ -106,7 +109,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <section className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer" onClick={() => onNavigate("dayplans")}>
             <div className="flex items-center gap-2 text-ink-500 mb-3">
               <ClipboardList size={16} />
@@ -194,6 +197,24 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
               </Button>
             </div>
             {waterError && <p className="mt-2 text-xs text-rose-soft-600" role="alert">{waterError}</p>}
+          </section>
+
+          <section className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer" onClick={() => onNavigate("meals")}>
+            <div className="flex items-center gap-2 text-ink-500 mb-3">
+              <Utensils size={16} />
+              <h3 className="text-xs font-semibold uppercase tracking-widest">Today's meals</h3>
+            </div>
+            {meals.length === 0 ? (
+              <p className="text-sm text-ink-500">No meals logged yet. Tap to add.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {meals.slice(0, 3).map((m) => (
+                  <li key={m.id} className="text-sm text-ink-800 truncate">
+                    {m.meal_type}: {m.name}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
       )}

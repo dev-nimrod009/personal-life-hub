@@ -60,7 +60,7 @@ function compressImage(file: File, maxSize: number): Promise<string> {
 }
 
 export function ProfilePage() {
-  const { user, registerPasskey, hasPasskey, setupLocalPin, unlockWithLocalPin, hasLocalPin, signOut } = useAuth();
+  const { user, registerPasskey, hasPasskey, setupLocalPin, unlockWithLocalPin, hasLocalPin, clearLocalPin, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -83,7 +83,7 @@ export function ProfilePage() {
   const [pinInput, setPinInput] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
   const [pinError, setPinError] = useState("");
-  const [pinMode, setPinMode] = useState<"setup" | "verify">("setup");
+  const [pinMode, setPinMode] = useState<"setup" | "verify" | "change" | "remove">("setup");
   const [appInfoOpen, setAppInfoOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -175,11 +175,26 @@ export function ProfilePage() {
       }
       return;
     }
+    if (pinMode === "remove") {
+      try {
+        if (!(await unlockWithLocalPin(pinInput))) {
+          setPinError("That PIN is not correct.");
+          return;
+        }
+        clearLocalPin();
+        setPinOpen(false);
+        setPinInput("");
+        setPinError("");
+      } catch {
+        setPinError("Could not remove the PIN on this device.");
+      }
+      return;
+    }
     if (pinInput.length < 4) {
       setPinError("PIN must be at least 4 digits.");
       return;
     }
-    if (pinMode === "setup") {
+    if (pinMode === "setup" || pinMode === "change") {
       if (pinInput !== pinConfirm) {
         setPinError("PINs do not match.");
         return;
@@ -446,14 +461,27 @@ export function ProfilePage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setPinMode("verify");
+                    setPinMode("change");
                     setPinOpen(true);
                     setPinError("");
                     setPinInput("");
                     setPinConfirm("");
                   }}
                 >
-                  Verify PIN
+                  Change PIN
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPinMode("remove");
+                    setPinOpen(true);
+                    setPinError("");
+                    setPinInput("");
+                    setPinConfirm("");
+                  }}
+                >
+                  Remove PIN
                 </Button>
               </div>
             ) : (
@@ -477,11 +505,20 @@ export function ProfilePage() {
         </>
       )}
 
-      <Modal open={pinOpen} onClose={() => setPinOpen(false)} title={pinMode === "setup" ? "Set up a local PIN" : "Enter your PIN"}>
+      <Modal open={pinOpen} onClose={() => setPinOpen(false)} title={
+        pinMode === "setup" ? "Set up a local PIN" :
+        pinMode === "change" ? "Change your PIN" :
+        pinMode === "remove" ? "Remove PIN" :
+        "Enter your PIN"
+      }>
         <div className="space-y-4">
           <p className="text-xs text-ink-500">
             {pinMode === "setup"
               ? "Choose a PIN (at least 4 digits). You'll use it to unlock the app when biometrics aren't available."
+              : pinMode === "change"
+              ? "Enter your new PIN (at least 4 digits)."
+              : pinMode === "remove"
+              ? "Enter your current PIN to remove it."
               : "Enter your PIN to unlock."}
           </p>
           <div>
@@ -498,7 +535,7 @@ export function ProfilePage() {
               onKeyDown={(e) => e.key === "Enter" && handlePinSetup()}
             />
           </div>
-          {pinMode === "setup" && (
+          {(pinMode === "setup" || pinMode === "change") && (
             <div>
               <Label>Confirm PIN</Label>
               <Input
@@ -516,10 +553,13 @@ export function ProfilePage() {
           {pinError && <div className="rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{pinError}</div>}
           <Button
             onClick={() => void handlePinSetup()}
-            disabled={pinInput.length < (pinMode === "setup" ? 4 : 1)}
+            disabled={pinInput.length < (pinMode === "setup" || pinMode === "change" ? 4 : 1)}
             className="w-full"
           >
-            {pinMode === "setup" ? "Save PIN" : "Verify PIN"}
+            {pinMode === "setup" ? "Save PIN" :
+             pinMode === "change" ? "Change PIN" :
+             pinMode === "remove" ? "Remove PIN" :
+             "Verify PIN"}
           </Button>
         </div>
       </Modal>

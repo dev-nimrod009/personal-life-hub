@@ -115,6 +115,7 @@
     --radius-xl: .75rem;
     --radius-2xl: 1rem;
     --radius-3xl: 1.5rem;
+    --animate-spin: spin 1s linear infinite;
     --animate-pulse: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite;
     --blur-sm: 8px;
     --default-transition-duration: .15s;
@@ -1015,6 +1016,10 @@
     animation: var(--animate-pulse);
   }
 
+  .animate-spin {
+    animation: var(--animate-spin);
+  }
+
   .cursor-pointer {
     cursor: pointer;
   }
@@ -1266,11 +1271,6 @@
     border-top-right-radius: .25rem;
   }
 
-  .rounded-t-2xl {
-    border-top-left-radius: var(--radius-2xl);
-    border-top-right-radius: var(--radius-2xl);
-  }
-
   .rounded-t-md {
     border-top-left-radius: var(--radius-md);
     border-top-right-radius: var(--radius-md);
@@ -1467,6 +1467,10 @@
 
   .bg-honey-300 {
     background-color: var(--color-honey-300);
+  }
+
+  .bg-honey-500 {
+    background-color: var(--color-honey-500);
   }
 
   .bg-honey-500\/10 {
@@ -1697,6 +1701,10 @@
     padding-top: calc(var(--spacing) * 6);
   }
 
+  .pt-16 {
+    padding-top: calc(var(--spacing) * 16);
+  }
+
   .pr-10 {
     padding-right: calc(var(--spacing) * 10);
   }
@@ -1924,6 +1932,10 @@
 
   .text-ink-800 {
     color: var(--color-ink-800);
+  }
+
+  .text-ink-900 {
+    color: var(--color-ink-900);
   }
 
   .text-rose-200 {
@@ -2425,8 +2437,8 @@
   }
 
   @media (min-width: 40rem) {
-    .sm\:col-span-2 {
-      grid-column: span 2 / span 2;
+    .sm\:inline {
+      display: inline;
     }
 
     .sm\:w-auto {
@@ -2453,10 +2465,6 @@
       align-items: center;
     }
 
-    .sm\:rounded-2xl {
-      border-radius: var(--radius-2xl);
-    }
-
     .sm\:p-5 {
       padding: calc(var(--spacing) * 5);
     }
@@ -2467,6 +2475,10 @@
 
     .sm\:py-10 {
       padding-block: calc(var(--spacing) * 10);
+    }
+
+    .sm\:pt-0 {
+      padding-top: 0;
     }
 
     .sm\:text-2xl {
@@ -2523,6 +2535,12 @@
 
     .md\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .lg\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 }
@@ -2916,6 +2934,12 @@ body {
   syntax: "*";
   inherits: false;
   initial-value: 1;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {

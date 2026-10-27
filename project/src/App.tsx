@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Menu, X, Feather, UserRound } from "lucide-react";
+import { Menu, X, Feather } from "lucide-react";
 import { Sidebar, CompactNav, type SectionId } from "./components/nav";
 import { InstallAppCard } from "./components/InstallAppCard";
 import { OfflineBanner } from "./components/OfflineBanner";
-import { hydrateFromNetwork } from "./lib/data";
+import { hydrateFromNetwork, getProfile } from "./lib/data";
 import { useAuth } from "./lib/auth";
 import { SignInScreen } from "./pages/SignInScreen";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -23,6 +23,7 @@ import { GoalsPage } from "./pages/GoalsPage";
 import { BrainDumpPage } from "./pages/BrainDumpPage";
 import { QuoteVaultPage } from "./pages/QuoteVaultPage";
 import type { MealTab } from "./pages/MealsPage";
+import type { Profile } from "./lib/types";
 
 function renderSection(section: SectionId, onNavigate: (id: string) => void, mealTab: MealTab) {
   switch (section) {
@@ -81,14 +82,27 @@ const SECTION_TITLES: Record<SectionId, string> = {
 };
 
 export default function App() {
-  const { session, loading, offlineAccess } = useAuth();
+  const { session, user, loading, offlineAccess } = useAuth();
   const [section, setSection] = useState<SectionId>("dashboard");
   const [mealTab, setMealTab] = useState<MealTab>("week");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     if (session || offlineAccess) void hydrateFromNetwork();
   }, [session, offlineAccess]);
+
+  useEffect(() => {
+    if (!user) return;
+    void (async () => {
+      try {
+        const data = await getProfile(user.id, user.email ?? undefined);
+        setProfile(data);
+      } catch {
+        // Profile not set up yet
+      }
+    })();
+  }, [user]);
 
   useEffect(() => {
     window.history.replaceState(
@@ -144,6 +158,11 @@ export default function App() {
             ? "Recipes"
             : "Meal Planner";
 
+  const initials = (profile?.full_name || user?.email || "?")
+    .slice(0, 2)
+    .toUpperCase();
+  const firstName = profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "";
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -165,10 +184,21 @@ export default function App() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => navigate("profile")}
-              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
+              className="flex items-center gap-2 p-1.5 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
               aria-label="Open profile and settings"
             >
-              <UserRound size={20} />
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-sage-500 flex items-center justify-center text-white text-sm font-semibold">
+                  {initials}
+                </div>
+              )}
+              <span className="hidden sm:inline text-sm font-medium text-ink-700">{firstName}</span>
             </button>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
@@ -205,10 +235,21 @@ export default function App() {
             </div>
             <button
               onClick={() => navigate("profile")}
-              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100"
+              className="flex items-center gap-2 p-1.5 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
               aria-label="Open profile and settings"
             >
-              <UserRound size={19} />
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-sage-500 flex items-center justify-center text-white text-sm font-semibold">
+                  {initials}
+                </div>
+              )}
+              <span className="text-sm font-medium text-ink-700">{firstName}</span>
             </button>
           </div>
           <Sidebar active={section} onNavigate={navigate} />
