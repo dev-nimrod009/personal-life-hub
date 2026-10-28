@@ -1,9 +1,0 @@
-node_modules/
-.env
-.env.*
-!.env.example
-dist/
-*.tsbuildinfo
-.ideavo/project
-*.log
-.playwright-cli/
