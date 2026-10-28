@@ -74,7 +74,7 @@ export function InsightsPage() {
           if (Math.abs(diff) >= 0.3) {
             items.push({
               icon: CheckCircle2,
-              title: diff > 0 ? "Days with at least one habit done feel better" : "Your mood is steady whether or not you log habits",
+              title: diff > 0 ? "Days with at least one habit done feel better" : "Mood dips a little on habit days — maybe keep habits lighter",
               detail: `Average mood ${avg(withHabits).toFixed(1)} on habit days vs ${avg(withoutHabits).toFixed(1)} on rest days.`,
             });
           }

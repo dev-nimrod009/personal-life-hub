@@ -23,7 +23,7 @@ import type {
   BudgetItem,
 } from "./types";
 import { todayISO } from "./utils";
-import { localGet, localSet } from "./localdb";
+import { localGet, localKeys, localRemove, localSet } from "./localdb";
 
 type Row = Record<string, unknown>;
 
@@ -218,6 +218,22 @@ if (typeof window !== "undefined") {
 
 // ---------- offline-aware reads ----------
 
+const CACHE_OWNER_KEY = "lifehub:cache-owner";
+
+/** Drops cached rows and queued writes left by a different signed-in account on this device. */
+export function bindLocalCacheToUser(userId: string): void {
+  // Local-only ids are minted per sign-in and represent the same device owner.
+  if (userId.startsWith("local-")) return;
+  const owner = localGet(CACHE_OWNER_KEY);
+  if (owner === userId) return;
+  if (owner) {
+    for (const key of localKeys()) {
+      if (key.startsWith("lifehub:cache:") || key === QUEUE_KEY) localRemove(key);
+    }
+  }
+  localSet(CACHE_OWNER_KEY, userId);
+}
+
 export async function fetchAllRows(table: string): Promise<Row[]> {
   return fetchAll(table);
 }
@@ -225,17 +241,21 @@ export async function fetchAllRows(table: string): Promise<Row[]> {
 /** Inserts rows that are not on this device yet (local-first, synced when online). */
 export async function importRows(table: string, rows: Row[]): Promise<{ restored: number; skipped: number }> {
   const existing = new Set(readLocal(table).map((r) => r.id));
+  // Rows keep their own ids (so goal_steps/habit_logs still point at their parents) but are re-owned by the importing user.
+  const userId = isSupabaseConfigured ? (await supabase.auth.getUser().catch(() => null))?.data.user?.id : undefined;
   let restored = 0;
   let skipped = 0;
-  for (const row of rows) {
-    if (typeof row.id !== "string" || existing.has(row.id)) {
+  for (const original of rows) {
+    if (typeof original.id !== "string" || existing.has(original.id)) {
       skipped++;
       continue;
     }
+    const row = userId && "user_id" in original ? { ...original, user_id: userId } : original;
     try {
       await remoteOrQueue({ table, kind: "insert", row });
       restored++;
     } catch {
+      writeLocal(table, readLocal(table).filter((r) => r.id !== row.id));
       skipped++;
     }
   }

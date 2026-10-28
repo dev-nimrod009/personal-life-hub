@@ -88,6 +88,24 @@ export function localSet(key: string, value: string): void {
   persist(key, value);
 }
 
+export function localRemove(key: string): void {
+  if (!db) {
+    removeStoredValue(key);
+    return;
+  }
+  memory.delete(key);
+  persist(key, null);
+}
+
+export function localKeys(): string[] {
+  if (db) return Array.from(memory.keys());
+  try {
+    return Object.keys(localStorage);
+  } catch {
+    return [];
+  }
+}
+
 export function localUsesIndexedDb(): boolean {
   return db !== null;
 }

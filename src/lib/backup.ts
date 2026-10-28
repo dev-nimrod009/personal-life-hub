@@ -55,7 +55,7 @@ export interface BackupProgress {
 async function readTables(): Promise<Record<string, Row[]>> {
   const data: Record<string, Row[]> = {};
   for (const table of BACKUP_TABLES) {
-    data[table] = await fetchAllRows(table).catch(() => []);
+    data[table] = await fetchAllRows(table);
   }
   return data;
 }
@@ -150,7 +150,7 @@ export async function exportMarkdownFile(): Promise<number> {
     `### ${str(r.title) || "Untitled"} (${str(r.created_at).slice(0, 10)})\n\n${str(r.content)}`
   );
   section("Diary", [...d.diary_entries].sort(byField("entry_date")), (r) => `### ${str(r.entry_date)}\n\n${str(r.content)}`);
-  section("Notes", d.notes.filter((r) => !r.password_hash), (r) => `### ${str(r.title) || "Untitled"}\n\n${str(r.content)}`);
+  section("Notes", d.notes.filter((r) => (r.category ?? "personal") !== "private" && !r.password_hash), (r) => `### ${str(r.title) || "Untitled"}\n\n${str(r.content)}`);
   section("Brain Dump", [...d.inbox_items].sort(byField("created_at")), (r) => `- ${str(r.content)}`);
   section("Gratitude", [...d.gratitude_entries].sort(byField("entry_date")), (r) => `- ${str(r.entry_date)}: ${str(r.content)}`);
   section("Quote Vault", d.saved_quotes, (r) => `> ${str(r.text)}${r.author ? `\n> — ${str(r.author)}` : ""}`);

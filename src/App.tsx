@@ -28,7 +28,7 @@ import { GoalsPage } from "./pages/GoalsPage";
 import { BrainDumpPage } from "./pages/BrainDumpPage";
 import { QuoteVaultPage } from "./pages/QuoteVaultPage";
 import type { MealTab } from "./pages/MealsPage";
-import { getProfile } from "./lib/data";
+import { bindLocalCacheToUser, getProfile } from "./lib/data";
 import type { Profile } from "./lib/types";
 import { Modal } from "./components/ui";
 
@@ -108,6 +108,7 @@ const SECTION_TITLES: Record<SectionId, string> = {
 
 export default function App() {
   const { session, user, loading, offlineAccess } = useAuth();
+  if (user) bindLocalCacheToUser(user.id);
   const [section, setSection] = useState<SectionId>("dashboard");
   const [mealTab, setMealTab] = useState<MealTab>("week");
   const [menuOpen, setMenuOpen] = useState(false);

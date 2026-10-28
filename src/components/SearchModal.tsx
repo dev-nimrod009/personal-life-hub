@@ -66,7 +66,7 @@ async function loadEverything(): Promise<SearchResult[]> {
   return [
     ...journal.map((e) => make("journal", "Journal", e.id, e.title, e.content, e.created_at?.slice(0, 10))),
     ...diary.map((e) => make("diary", "Diary", e.id, "", e.content, e.entry_date)),
-    ...notes.filter((n) => !n.password_hash).map((n) => make("notes", "Notepad", n.id, n.title, n.content, n.created_at?.slice(0, 10))),
+    ...notes.filter((n) => (n.category ?? "personal") !== "private" && !n.password_hash).map((n) => make("notes", "Notepad", n.id, n.title, n.content, n.created_at?.slice(0, 10))),
     ...inbox.map((i) => make("braindump", "Brain Dump", i.id, "", i.content, i.created_at?.slice(0, 10))),
     ...quotes.map((q) => make("quotes", "Quote Vault", q.id, q.author ? `— ${q.author}` : "", q.text)),
     ...gratitude.map((g) => make("gratitude", "Gratitude", g.id, "", g.content, g.entry_date)),
