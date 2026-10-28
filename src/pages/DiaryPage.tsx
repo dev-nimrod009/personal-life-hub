@@ -89,7 +89,7 @@ export function DiaryPage() {
         subtitle="One page per day, like a paper diary"
         action={
           <Button onClick={openNewPage}>
-            <Plus size={16} /> Add entry
+            <Plus size={16} /> {todayEntry ? "Open today's page" : "Add entry"}
           </Button>
         }
       />
@@ -187,13 +187,23 @@ export function DiaryPage() {
                     setContent(existing.content);
                     setEntryId(existing.id);
                   } else {
+                    setContent("");
                     setEntryId(null);
                   }
                 }}
                 className="w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-sage-300 transition-shadow"
               />
               {selectedDate !== today && (
-                <Button size="sm" variant="secondary" onClick={() => setSelectedDate(today)}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const existing = entries.find((x) => x.entry_date === today);
+                    setSelectedDate(today);
+                    setContent(existing?.content ?? "");
+                    setEntryId(existing?.id ?? null);
+                  }}
+                >
                   Today
                 </Button>
               )}

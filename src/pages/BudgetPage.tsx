@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Wallet, TrendingUp, TrendingDown, ArrowLeftRight, ShoppingCart, Check } from "lucide-react";
+import { Plus, Trash2, Wallet, TrendingUp, TrendingDown, ArrowLeftRight, ShoppingCart, Check, ChevronLeft, ChevronRight, Leaf } from "lucide-react";
 import {
   listBudgetItems,
   addBudgetItem,
@@ -21,6 +21,7 @@ export function BudgetPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState(() => todayISO().slice(0, 7));
   const [form, setForm] = useState({
     type: "expense" as "expense" | "income" | "tobuy",
     amount: "",
@@ -75,14 +76,22 @@ export function BudgetPage() {
     load();
   };
 
+  const monthItems = useMemo(() => items.filter((item) => (item.item_date ?? "").slice(0, 7) === month), [items, month]);
+  const monthLabel = new Date(`${month}-01T12:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const shiftMonth = (delta: number) => {
+    const [y, m] = month.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+
   const { income, expenses, balance } = useMemo(() => {
     let inc = 0, exp = 0;
-    for (const item of items) {
+    for (const item of monthItems) {
       if (item.kind === "income") inc += item.amount;
       else if (item.kind === "expense") exp += item.amount;
     }
     return { income: inc, expenses: exp, balance: inc - exp };
-  }, [items]);
+  }, [monthItems]);
 
   const stillToBuy = useMemo(
     () => shopping.filter((item) => !item.bought).reduce((sum, item) => sum + item.est_cost, 0),
@@ -90,17 +99,27 @@ export function BudgetPage() {
   );
 
   const plannedItems = shopping.filter((item) => !item.bought);
-  const completedItems = items;
+  const completedItems = monthItems;
+  const essentials = monthItems
+    .filter((item) => item.kind === "expense" && ["Rent", "Food", "Bills"].includes(item.category))
+    .reduce((sum, item) => sum + item.amount, 0);
+  const afterPlanned = balance - stillToBuy;
+  const enoughNote =
+    income === 0 && expenses === 0
+      ? "Nothing logged for this month yet. Add your income and essentials when you're ready — no rush."
+      : afterPlanned >= 0
+        ? `You've covered KES ${essentials.toLocaleString()} in essentials (rent, food, bills) and still have KES ${afterPlanned.toLocaleString()} after planned purchases. You have enough.`
+        : `Planned purchases are KES ${Math.abs(afterPlanned).toLocaleString()} more than what's left this month. Maybe pause a wishlist item — essentials first, and that's okay.`;
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
-    for (const item of items) {
+    for (const item of monthItems) {
       if (item.kind === "expense") {
         map.set(item.category, (map.get(item.category) ?? 0) + item.amount);
       }
     }
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  }, [items]);
+  }, [monthItems]);
 
   const maxCat = byCategory[0]?.[1] ?? 1;
 
@@ -113,6 +132,16 @@ export function BudgetPage() {
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
+
+      <div className="flex items-center justify-between mb-3">
+        <Button variant="ghost" size="sm" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+          <ChevronLeft size={16} />
+        </Button>
+        <p className="font-display text-base font-semibold text-ink-800">{monthLabel}</p>
+        <Button variant="ghost" size="sm" onClick={() => shiftMonth(1)} aria-label="Next month" disabled={month >= todayISO().slice(0, 7)}>
+          <ChevronRight size={16} />
+        </Button>
+      </div>
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
         <div className="bg-white rounded-2xl border border-cream-200 p-4">
@@ -140,7 +169,7 @@ export function BudgetPage() {
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">Balance</p>
           </div>
-          <p className="font-display text-lg font-bold text-sage-600">KES {balance.toLocaleString()}</p>
+          <p className={cn("font-display text-lg font-bold", balance < 0 ? "text-rose-soft-600" : "text-sage-600")}>KES {balance.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-2xl border border-cream-200 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -156,12 +185,12 @@ export function BudgetPage() {
       <section className="bg-white rounded-2xl border border-cream-200 p-5 mb-5 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sage-50 text-sage-600 flex items-center justify-center shrink-0">
-            <span className="font-display text-lg font-bold">🌿</span>
+            <Leaf size={18} aria-hidden="true" />
           </div>
           <div>
             <h3 className="font-display font-semibold text-sm text-ink-800">The "Enough" Mindset</h3>
             <p className="text-xs text-ink-600 mt-0.5 leading-relaxed">
-              This month you’re on track for rent + food + savings. Take a deep breath — you have enough and you are doing enough.
+              {enoughNote}
             </p>
           </div>
         </div>
@@ -242,7 +271,7 @@ export function BudgetPage() {
         <EmptyState icon={<Wallet size={26} />} title="No entries yet" hint="Add income or an expense to start tracking your money." />
       ) : completedItems.length === 0 ? (
         <p className="rounded-xl border border-cream-200 bg-white px-4 py-3 text-sm text-ink-500">
-          No completed income or expense entries yet.
+          No income or expense entries for {monthLabel}.
         </p>
       ) : (
         <ul className="space-y-2">

@@ -120,7 +120,7 @@ export function BrainDumpPage() {
                 <Button variant="secondary" size="sm" onClick={() => moveToNotes(item)}>
                   <Notebook size={12} /> Notepad
                 </Button>
-                <span className="ml-auto text-xs text-ink-500/70">{formatDay(item.created_at.slice(0, 10))}</span>
+                <span className="ml-auto text-xs text-ink-500/70">{formatDay((item.created_at || todayISO()).slice(0, 10))}</span>
               </div>
             </li>
           ))}

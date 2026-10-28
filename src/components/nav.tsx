@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   CalendarDays,
@@ -104,7 +105,9 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   },
 ];
 
-function getEnabledModules(): Record<string, boolean> {
+export const MODULES_CHANGED_EVENT = "lifehub:modules-changed";
+
+export function getEnabledModules(): Record<string, boolean> {
   try {
     const saved = localStorage.getItem("lifehub:modules");
     if (saved) return JSON.parse(saved);
@@ -114,13 +117,27 @@ function getEnabledModules(): Record<string, boolean> {
   return {};
 }
 
+export function useEnabledModules(): Record<string, boolean> {
+  const [modules, setModules] = useState(getEnabledModules);
+  useEffect(() => {
+    const refresh = () => setModules(getEnabledModules());
+    window.addEventListener(MODULES_CHANGED_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(MODULES_CHANGED_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+  return modules;
+}
+
 interface SidebarProps {
   active: SectionId;
   onNavigate: (id: SectionId) => void;
 }
 
 export function Sidebar({ active, onNavigate }: SidebarProps) {
-  const modules = getEnabledModules();
+  const modules = useEnabledModules();
 
   return (
     <nav className="p-4 space-y-4 scrollbar-hide">
@@ -166,7 +183,7 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
 }
 
 export function CompactNav({ active, onNavigate, onClose }: SidebarProps & { onClose: () => void }) {
-  const modules = getEnabledModules();
+  const modules = useEnabledModules();
 
   return (
     <nav className="w-[85vw] max-w-[280px] max-h-[calc(100vh-64px)] overflow-y-auto p-2 overscroll-behavior-contain scrollbar-hide">

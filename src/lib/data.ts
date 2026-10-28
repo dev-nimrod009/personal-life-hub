@@ -23,7 +23,7 @@ import type {
   BudgetItem,
 } from "./types";
 import { todayISO } from "./utils";
-import { getStoredValue, setStoredValue } from "./storage";
+import { localGet, localSet } from "./localdb";
 
 type Row = Record<string, unknown>;
 
@@ -34,7 +34,7 @@ const cacheKey = (table: string) => `lifehub:cache:${table}`;
 
 function readLocal(table: string): Row[] {
   try {
-    const parsed: unknown = JSON.parse(getStoredValue(cacheKey(table)) ?? "[]");
+    const parsed: unknown = JSON.parse(localGet(cacheKey(table)) ?? "[]");
     return Array.isArray(parsed)
       ? parsed.filter((row): row is Row => typeof row === "object" && row !== null && !Array.isArray(row))
       : [];
@@ -45,7 +45,7 @@ function readLocal(table: string): Row[] {
 
 function writeLocal(table: string, rows: Row[]): void {
   try {
-    setStoredValue(cacheKey(table), JSON.stringify(rows));
+    localSet(cacheKey(table), JSON.stringify(rows));
   } catch {
     // storage full or unavailable - cloud remains the source of truth
   }
@@ -61,7 +61,7 @@ interface SyncItem {
 
 function readQueue(): SyncItem[] {
   try {
-    const parsed: unknown = JSON.parse(getStoredValue(QUEUE_KEY) ?? "[]");
+    const parsed: unknown = JSON.parse(localGet(QUEUE_KEY) ?? "[]");
     return Array.isArray(parsed)
       ? parsed.filter(
           (item): item is SyncItem =>
@@ -83,7 +83,7 @@ function readQueue(): SyncItem[] {
 
 function writeQueue(items: SyncItem[]): void {
   try {
-    setStoredValue(QUEUE_KEY, JSON.stringify(items));
+    localSet(QUEUE_KEY, JSON.stringify(items));
   } catch {
     // nothing we can do, keep the in-memory state consistent
   }
@@ -142,7 +142,17 @@ export async function checkBackendConnectivity(): Promise<boolean> {
   }
 }
 
-async function remoteOrQueue(item: Omit<SyncItem, "ts">): Promise<void> {
+const TABLES_WITH_CREATED_AT = new Set([
+  "journal_entries", "diary_entries", "notes", "day_plans", "reminders", "habits", "meals",
+  "gratitude_entries", "goals", "profiles", "goal_steps", "saved_quotes", "inbox_items",
+  "recipes", "meal_library", "pantry_items", "shopping_list", "budget_items",
+]);
+
+async function remoteOrQueue(input: Omit<SyncItem, "ts">): Promise<void> {
+  const item =
+    input.kind === "insert" && TABLES_WITH_CREATED_AT.has(input.table) && !input.row.created_at
+      ? { ...input, row: { ...input.row, created_at: new Date().toISOString() } }
+      : input;
   writeLocalForItem(item);
   if (!isSupabaseConfigured) {
     notify();
@@ -191,7 +201,9 @@ export async function flushSync(): Promise<void> {
       remaining.push(item);
     }
   }
-  writeQueue(remaining);
+  // Keep anything queued while this flush was running.
+  const added = readQueue().filter((q) => !items.some((i) => i.ts === q.ts && i.table === q.table && i.row.id === q.row.id));
+  writeQueue([...remaining, ...added]);
   syncing = false;
   notify();
 }
@@ -205,6 +217,30 @@ if (typeof window !== "undefined") {
 }
 
 // ---------- offline-aware reads ----------
+
+export async function fetchAllRows(table: string): Promise<Row[]> {
+  return fetchAll(table);
+}
+
+/** Inserts rows that are not on this device yet (local-first, synced when online). */
+export async function importRows(table: string, rows: Row[]): Promise<{ restored: number; skipped: number }> {
+  const existing = new Set(readLocal(table).map((r) => r.id));
+  let restored = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    if (typeof row.id !== "string" || existing.has(row.id)) {
+      skipped++;
+      continue;
+    }
+    try {
+      await remoteOrQueue({ table, kind: "insert", row });
+      restored++;
+    } catch {
+      skipped++;
+    }
+  }
+  return { restored, skipped };
+}
 
 async function fetchAll(table: string): Promise<Row[]> {
   if (!isSupabaseConfigured) {
