@@ -4,7 +4,7 @@ node_modules/
 !.env.example
 dist/
 *.tsbuildinfo
-.ideavo/project
+.ideavo/
 *.log
 .playwright-cli/
 .aistudio/
