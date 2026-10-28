@@ -58,7 +58,7 @@ function renderSection(section: SectionId, onNavigate: (id: string) => void, mea
     case "habits":
       return <HabitsPage />;
     case "meals":
-      return <MealsPage activeTab={mealTab} onTabChange={(tab) => onNavigate(`meals:${tab}`)} />;
+      return <MealsPage activeTab={mealTab} onTabChange={(tab: MealTab) => onNavigate(`meals:${tab}`)} />;
     case "budget":
       return <BudgetPage />;
     case "mood":

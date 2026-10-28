@@ -1,32 +1,30 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Search, Quote } from "lucide-react";
+import { Quote, Plus, Trash2, Sparkles, Bookmark, Share2 } from "lucide-react";
 import { listQuotes, addQuote, deleteQuote } from "../lib/data";
 import type { SavedQuote } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
 
-const KINDS = ["quote", "excerpt", "affirmation"] as const;
-
-const KIND_LABELS: Record<string, string> = {
-  quote: "Quote",
-  excerpt: "Book Excerpt",
-  affirmation: "Affirmation",
-};
+const CATEGORIES = ["All", "Wisdom", "Mindfulness", "Courage", "Growth", "Life", "Literature"];
 
 export function QuoteVaultPage() {
   const [quotes, setQuotes] = useState<SavedQuote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ text: "", author: "", kind: "quote" });
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [author, setAuthor] = useState("");
+  const [kind, setKind] = useState("Wisdom");
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     try {
-      setQuotes(await listQuotes());
+      const data = await listQuotes();
+      setQuotes(data);
       setError("");
     } catch {
-      setError("Could not read the vault from this device.");
+      setError("Could not load quotes from device.");
     } finally {
       setLoading(false);
     }
@@ -37,157 +35,186 @@ export function QuoteVaultPage() {
   }, []);
 
   const save = async () => {
-    if (!form.text.trim()) return;
+    if (!text.trim()) return;
     setSaving(true);
     try {
-      await addQuote(form.text.trim(), form.author.trim(), form.kind);
-      setForm({ text: "", author: "", kind: "quote" });
-      setOpen(false);
-      setError("");
+      await addQuote(text.trim(), author.trim() || "Anonymous", kind);
+      setModalOpen(false);
+      setText("");
+      setAuthor("");
+      setKind("Wisdom");
       await load();
     } catch {
-      setError("Could not save the entry.");
+      setError("Could not save quote.");
     } finally {
       setSaving(false);
     }
   };
 
-  const openNewEntry = () => {
-    setForm({ text: "", author: "", kind: "quote" });
-    setOpen(true);
-  };
-
   const remove = async (id: string) => {
     try {
       await deleteQuote(id);
+      await load();
     } catch {
-      setError("Could not remove the entry.");
+      setError("Could not delete quote.");
     }
-    load();
   };
 
-  const filtered = filterQuotes(quotes, query);
+  const filteredQuotes = quotes.filter((q) => {
+    if (selectedCategory === "All") return true;
+    return q.kind.toLowerCase() === selectedCategory.toLowerCase();
+  });
+
+  const featured = quotes.length > 0 ? quotes[0] : null;
 
   return (
     <div className="animate-fade-up">
       <SectionHeader
         title="Quote Vault"
-        subtitle="Words to revisit when you need them"
+        subtitle="Timeless wisdom, poetry, and words that ground and inspire you"
         action={
-          <Button onClick={openNewEntry}>
-            <Plus size={16} /> New entry
+          <Button onClick={() => setModalOpen(true)}>
+            <Plus size={16} /> Add Quote
           </Button>
         }
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
 
-      <div className="relative mb-6">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500/60" />
-        <Input
-          placeholder="Search the vault..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Featured Quote Banner */}
+      {featured && (
+        <div className="mb-8 rounded-3xl bg-sage-700 text-white p-6 sm:p-10 relative overflow-hidden shadow-sm">
+          <Quote
+            size={120}
+            className="absolute -right-4 -bottom-8 text-sage-600/30 pointer-events-none select-none"
+          />
+          <div className="relative z-10 max-w-2xl">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sage-600/60 text-sage-100 text-xs font-medium mb-4">
+              <Sparkles size={13} /> Daily Reflection
+            </span>
+            <p className="font-display text-xl sm:text-2xl md:text-3xl font-normal leading-relaxed italic">
+              "{featured.text}"
+            </p>
+            <p className="mt-4 text-sm text-sage-200 font-medium tracking-wide">
+              — {featured.author || "Unknown"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Categories */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors ${
+              selectedCategory === cat
+                ? "bg-sage-600 text-white"
+                : "bg-white border border-cream-200 text-ink-600 hover:bg-cream-100"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-36 rounded-2xl bg-cream-100 animate-pulse" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : filteredQuotes.length === 0 ? (
         <EmptyState
-          icon={<Quote size={26} />}
-          title={query ? "Nothing matches your search" : "The vault is empty"}
-          hint="Save a favorite quote, a book excerpt, or a personal affirmation."
+          icon={<Quote size={26} className="text-sage-600" />}
+          title="No quotes in this collection"
+          hint="Save favorite lines from books, mantras, or reminders from mentors."
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((quote) => (
-            <figure
-              key={quote.id}
-              className="group relative bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md hover:border-sage-300 transition-all"
+          {filteredQuotes.map((q) => (
+            <div
+              key={q.id}
+              className="bg-white rounded-2xl border border-cream-200 p-6 flex flex-col justify-between hover:shadow-md transition-shadow group relative"
             >
-              <blockquote className="text-[15px] leading-relaxed text-ink-800 whitespace-pre-wrap">
-                {quote.text}
-              </blockquote>
-              <figcaption className="mt-4 flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-sage-600 block">
-                    {KIND_LABELS[quote.kind] ?? "Quote"}
+              <div>
+                <div className="flex items-center justify-between mb-3 text-ink-400">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-cream-100 text-ink-600">
+                    {q.kind || "Wisdom"}
                   </span>
-                  {quote.author && <span className="text-sm text-ink-500">— {quote.author}</span>}
+                  <button
+                    onClick={() => void remove(q.id)}
+                    className="opacity-0 group-hover:opacity-100 text-ink-400 hover:text-rose-soft-600 transition-opacity p-1"
+                    title="Delete quote"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => remove(quote.id)}
-                  className="opacity-60 shrink-0"
-                  aria-label="Delete"
-                >
-                  <Trash2 size={13} />
-                </Button>
-              </figcaption>
-            </figure>
+
+                <p className="font-serif text-base sm:text-lg text-ink-800 leading-relaxed italic mb-4">
+                  "{q.text}"
+                </p>
+              </div>
+
+              <div className="border-t border-cream-100 pt-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-ink-600">— {q.author || "Anonymous"}</span>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      <Modal
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          setForm({ text: "", author: "", kind: "quote" });
-        }}
-        title="New vault entry"
-      >
+      {/* Add Modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add to Quote Vault">
         <div className="space-y-4">
           <div>
-            <Label>Words</Label>
+            <Label>Quote Text</Label>
             <Textarea
               rows={4}
-              value={form.text}
-              onChange={(e) => setForm({ ...form, text: e.target.value })}
-              placeholder="A favorite quote, excerpt, or affirmation..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Enter the quote, poem line, or mantra..."
+              className="font-serif italic text-base leading-relaxed"
+              autoFocus
             />
           </div>
-          <div>
-            <Label>Said by (optional)</Label>
-            <Input
-              value={form.author}
-              onChange={(e) => setForm({ ...form, author: e.target.value })}
-              placeholder="Author, book title, or just you..."
-            />
-          </div>
-          <div>
-            <Label>Kind</Label>
-            <div className="flex flex-wrap gap-2">
-              {KINDS.map((kind) => (
-                <button
-                  key={kind}
-                  onClick={() => setForm({ ...form, kind })}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    form.kind === kind ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
-                  }`}
-                >
-                  {KIND_LABELS[kind]}
-                </button>
-              ))}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Author / Source</Label>
+              <Input
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="e.g. Marcus Aurelius"
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <select
+                value={kind}
+                onChange={(e) => setKind(e.target.value)}
+                className="w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-800"
+              >
+                {CATEGORIES.filter((c) => c !== "All").map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-          <Button onClick={save} disabled={saving || !form.text.trim()} className="w-full">
-            {saving ? "Saving..." : "Save to vault"}
-          </Button>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void save()} disabled={saving || !text.trim()}>
+              {saving ? "Saving..." : "Save Quote"}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
   );
-}
-
-function filterQuotes(quotes: SavedQuote[], query: string): SavedQuote[] {
-  const q = query.toLowerCase();
-  return quotes.filter((quote) => quote.text.toLowerCase().includes(q) || quote.author.toLowerCase().includes(q));
 }
