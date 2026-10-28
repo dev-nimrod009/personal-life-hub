@@ -258,6 +258,19 @@ export function SignInScreen() {
               <Fingerprint size={16} /> Unlock with biometrics
             </Button>
 
+            <Button
+              variant="ghost"
+              className="w-full mt-2 text-ink-600 hover:text-ink-800"
+              onClick={async () => {
+                setBusy(true);
+                await signIn("guest@lifehub.local", "guest12345");
+                setBusy(false);
+              }}
+              disabled={busy}
+            >
+              Continue as Guest (Offline Mode)
+            </Button>
+
             {hasLocalPin && (
               <button
                 type="button"

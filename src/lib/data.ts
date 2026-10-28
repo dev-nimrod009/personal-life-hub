@@ -429,12 +429,14 @@ export async function upsertNote(entry: {
   content: string;
   category?: string;
   password_hash?: string;
+  pinned?: boolean;
 }): Promise<void> {
   const changes: Record<string, unknown> = {
     title: entry.title,
     content: entry.content,
     category: entry.category ?? "personal",
     password_hash: entry.password_hash ?? "",
+    ...(entry.pinned !== undefined ? { pinned: entry.pinned } : {}),
     updated_at: new Date().toISOString(),
   };
   if (entry.id) {
