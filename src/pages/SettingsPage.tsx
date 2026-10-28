@@ -15,13 +15,15 @@ import {
   Trash2,
   Check,
 } from "lucide-react";
-import { useAuth } from "../lib/auth";
+import { useAuth, verifyLocalPin } from "../lib/auth";
+import { MODULES_CHANGED_EVENT } from "../components/nav";
+import { applyDisplayPreferences } from "../lib/display";
 import { Button, Input, Label, Modal, SectionHeader } from "../components/ui";
-import { backupToFile, restoreFromText } from "../lib/backup";
+import { backupToFile, exportBudgetCsv, exportMarkdownFile, restoreFromText } from "../lib/backup";
 import { clearLocalData, getStoredValue, setStoredValue } from "../lib/storage";
 
 export function SettingsPage() {
-  const { hasLocalPin, setupLocalPin, clearLocalPin, unlockWithLocalPin, registerPasskey, hasPasskey, signOut, user } = useAuth();
+  const { hasLocalPin, setupLocalPin, clearLocalPin, registerPasskey, hasPasskey, signOut, user } = useAuth();
   
   // Settings state
   const [theme, setTheme] = useState(() => getStoredValue("lifehub:theme") || "system");
@@ -69,18 +71,21 @@ export function SettingsPage() {
   const handleThemeChange = (val: string) => {
     setTheme(val);
     setStoredValue("lifehub:theme", val);
+    applyDisplayPreferences();
     showSuccess("Theme updated.");
   };
 
   const handleFontSizeChange = (val: string) => {
     setFontSize(val);
     setStoredValue("lifehub:fontsize", val);
+    applyDisplayPreferences();
     showSuccess("Font size updated.");
   };
 
   const handleContrastToggle = (val: boolean) => {
     setHighContrast(val);
     setStoredValue("lifehub:contrast", val ? "1" : "0");
+    applyDisplayPreferences();
     showSuccess("Display contrast updated.");
   };
 
@@ -91,16 +96,17 @@ export function SettingsPage() {
   };
 
   const toggleModule = (key: string) => {
-    const next = { ...modules, [key]: !modules[key] };
+    const next = { ...modules, [key]: modules[key] === false };
     setModules(next);
     setStoredValue("lifehub:modules", JSON.stringify(next));
+    window.dispatchEvent(new Event(MODULES_CHANGED_EVENT));
     showSuccess("Module preferences updated.");
   };
 
   const handlePinSubmit = async () => {
     setPinError("");
     if (pinMode === "remove") {
-      const ok = await unlockWithLocalPin(oldPin);
+      const ok = await verifyLocalPin(oldPin);
       if (!ok) {
         setPinError("Current PIN is incorrect.");
         return;
@@ -111,7 +117,7 @@ export function SettingsPage() {
       return;
     }
     if (pinMode === "change") {
-      const ok = await unlockWithLocalPin(oldPin);
+      const ok = await verifyLocalPin(oldPin);
       if (!ok) {
         setPinError("Current PIN is incorrect.");
         return;
@@ -136,16 +142,31 @@ export function SettingsPage() {
     }
   };
 
-  const exportMarkdown = () => {
-    const content = `# Life Hub Data Export\nExported on: ${new Date().toLocaleString()}\nUser: ${user?.email || "Local"}\n\nAll your entries are safely stored on this device.`;
-    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `life-hub-export-${new Date().toISOString().slice(0, 10)}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showSuccess("Markdown export downloaded.");
+  const exportMarkdown = async () => {
+    try {
+      const count = await exportMarkdownFile();
+      showSuccess(`Markdown export downloaded (${count} entries).`);
+    } catch {
+      showSuccess("Could not create the Markdown export.");
+    }
+  };
+
+  const exportCsv = async () => {
+    try {
+      const count = await exportBudgetCsv();
+      showSuccess(`Budget CSV downloaded (${count} rows).`);
+    } catch {
+      showSuccess("Could not create the CSV export.");
+    }
+  };
+
+  const saveBackup = async () => {
+    try {
+      const { total } = await backupToFile();
+      showSuccess(`Backup saved (${total} items).`);
+    } catch {
+      showSuccess("Could not create the backup file.");
+    }
   };
 
   return (
@@ -289,7 +310,7 @@ export function SettingsPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => void backupToFile()}
+              onClick={() => void saveBackup()}
             >
               <Download size={14} /> Save backup file
             </Button>
@@ -308,6 +329,7 @@ export function SettingsPage() {
                     void file.text().then((text) => restoreFromText(text)).then(({ restored }) => {
                       setRestoring(false);
                       showSuccess(`Restored ${restored} items successfully.`);
+                      window.setTimeout(() => window.location.reload(), 1200);
                     }).catch(() => {
                       setRestoring(false);
                       showSuccess("Could not restore file.");
@@ -318,8 +340,11 @@ export function SettingsPage() {
               />
             </label>
 
-            <Button variant="secondary" size="sm" onClick={exportMarkdown}>
+            <Button variant="secondary" size="sm" onClick={() => void exportMarkdown()}>
               <Download size={14} /> Export Markdown
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => void exportCsv()}>
+              <Download size={14} /> Budget CSV
             </Button>
           </div>
         </div>
@@ -403,12 +428,25 @@ export function SettingsPage() {
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { key: "budget", label: "Budget & Expenses" },
-            { key: "meals", label: "Meal Planner & Recipes" },
-            { key: "habits", label: "Habits & Streaks" },
-            { key: "gratitude", label: "Gratitude & Mood" },
-            { key: "quotes", label: "Quote Vault" },
             { key: "braindump", label: "Brain Dump" },
+            { key: "journal", label: "Journal" },
+            { key: "reviews", label: "Life Reviews" },
+            { key: "yearly", label: "Yearly Review" },
+            { key: "diary", label: "Diary" },
+            { key: "notes", label: "Notepad" },
+            { key: "quotes", label: "Quote Vault" },
+            { key: "learning", label: "Learning & Growth" },
+            { key: "dayplans", label: "Day Plans" },
+            { key: "reminders", label: "Reminders" },
+            { key: "goals", label: "Goals" },
+            { key: "insights", label: "Local Insights" },
+            { key: "habits", label: "Habits" },
+            { key: "meals", label: "Meal Planner" },
+            { key: "budget", label: "Budget" },
+            { key: "mood", label: "Mood" },
+            { key: "water", label: "Water" },
+            { key: "gratitude", label: "Gratitude" },
+            { key: "cycle", label: "Cycle Tracking (optional)" },
           ].map((mod) => (
             <label
               key={mod.key}

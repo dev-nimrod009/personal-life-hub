@@ -29,6 +29,7 @@ import {
 } from "../lib/data";
 import type { DayPlanTask, Habit, HabitLog, Mood, Reminder, WaterIntake, Profile, Meal } from "../lib/types";
 import { useAuth } from "../lib/auth";
+import { useEnabledModules } from "../components/nav";
 import { Button, Input, Label, Modal } from "../components/ui";
 import { formatDay, todayISO } from "../lib/utils";
 
@@ -51,6 +52,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
   const [moods, setMoods] = useState<Mood[]>([]);
   const [intakes, setIntakes] = useState<WaterIntake[]>([]);
   const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
+  const modules = useEnabledModules();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [waterSaving, setWaterSaving] = useState(false);
@@ -239,6 +241,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
 
           {/* Today's Plan */}
           <section
+            hidden={modules.dayplans === false}
             className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => onNavigate("dayplans")}
           >
@@ -262,6 +265,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
 
           {/* Upcoming Reminders */}
           <section
+            hidden={modules.reminders === false}
             className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => onNavigate("reminders")}
           >
@@ -284,6 +288,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
 
           {/* Habits Today */}
           <section
+            hidden={modules.habits === false}
             className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => onNavigate("habits")}
           >
@@ -318,6 +323,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
 
           {/* Water Tracker */}
           <section
+            hidden={modules.water === false}
             className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => onNavigate("water")}
           >
@@ -342,8 +348,9 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
             {waterError && <p className="mt-2 text-xs text-rose-soft-600" role="alert">{waterError}</p>}
           </section>
 
-          {/* NEW: Today's Meals Card */}
+          {/* Today's Meals Card */}
           <section
+            hidden={modules.meals === false}
             className="sm:col-span-2 bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200"
           >
             <div className="flex items-center justify-between mb-3.5">
@@ -401,7 +408,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
                           </p>
                           <p className="text-[11px] text-ink-500 truncate">
                             {meal.meal_type}
-                            {meal.cost ? ` · $${meal.cost.toFixed(2)}` : ""}
+                            {meal.cost ? ` · KES ${meal.cost.toLocaleString()}` : ""}
                           </p>
                         </div>
                       </div>
@@ -430,6 +437,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
 
       {/* Mood Check-in Card */}
       <section
+            hidden={modules.mood === false}
         className="mt-3 bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
         onClick={() => onNavigate("mood")}
       >

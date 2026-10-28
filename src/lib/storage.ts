@@ -28,5 +28,10 @@ export function clearLocalData(): void {
   } catch {
     // ignore
   }
+  try {
+    indexedDB.deleteDatabase("lifehub");
+  } catch {
+    // ignore
+  }
 }
 

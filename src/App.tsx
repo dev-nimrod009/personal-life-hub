@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { Menu, X, Feather, ArrowLeft, Plus, Inbox, Notebook, Wallet, CheckCircle2, Smile, Salad, Settings as SettingsIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Menu, X, Feather, ArrowLeft, Plus, Inbox, Notebook, Wallet, CheckCircle2, Smile, Salad, Settings as SettingsIcon, Search } from "lucide-react";
 import { Sidebar, CompactNav, type SectionId } from "./components/nav";
 import { InstallAppCard } from "./components/InstallAppCard";
+import { SearchModal } from "./components/SearchModal";
 import { useAuth } from "./lib/auth";
 import { SignInScreen } from "./pages/SignInScreen";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -27,7 +28,7 @@ import { GoalsPage } from "./pages/GoalsPage";
 import { BrainDumpPage } from "./pages/BrainDumpPage";
 import { QuoteVaultPage } from "./pages/QuoteVaultPage";
 import type { MealTab } from "./pages/MealsPage";
-import { getProfile } from "./lib/data";
+import { bindLocalCacheToUser, getProfile } from "./lib/data";
 import type { Profile } from "./lib/types";
 import { Modal } from "./components/ui";
 
@@ -107,9 +108,23 @@ const SECTION_TITLES: Record<SectionId, string> = {
 
 export default function App() {
   const { session, user, loading, offlineAccess } = useAuth();
+  if (user) bindLocalCacheToUser(user.id);
   const [section, setSection] = useState<SectionId>("dashboard");
   const [mealTab, setMealTab] = useState<MealTab>("week");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
 
@@ -240,6 +255,14 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
+              aria-label="Search"
+              title="Search (Ctrl+K)"
+            >
+              <Search size={18} />
+            </button>
+            <button
               onClick={() => navigate("settings")}
               className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
               aria-label="Settings"
@@ -268,21 +291,21 @@ export default function App() {
             </button>
           </div>
         </div>
-        {menuOpen && (
-          <div
-            className="fixed inset-0 z-50 md:hidden"
-            onClick={() => setMenuOpen(false)}
-          >
-            <div className="absolute inset-0 bg-ink-900/30 backdrop-blur-xs" />
-            <div 
-              className="absolute left-0 top-[57px] border-r border-b border-cream-200 bg-white shadow-xl max-w-[280px] w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <CompactNav active={section} onNavigate={navigate} onClose={() => setMenuOpen(false)} />
-            </div>
-          </div>
-        )}
       </header>
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden"
+          onClick={() => setMenuOpen(false)}
+        >
+          <div className="absolute inset-0 bg-ink-900/30 backdrop-blur-xs" />
+          <div 
+            className="absolute left-0 top-[57px] border-r border-b border-cream-200 bg-white shadow-xl max-w-[280px] w-full max-h-[calc(100dvh-57px)] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CompactNav active={section} onNavigate={navigate} onClose={() => setMenuOpen(false)} />
+          </div>
+        </div>
+      )}
 
       <div className="flex">
         <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-cream-200 bg-white/60 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
@@ -400,6 +423,8 @@ export default function App() {
           </button>
         </div>
       </Modal>
+
+      <SearchModal open={searchOpen} onClose={closeSearch} onNavigate={navigate} />
 
       <InstallAppCard />
     </div>

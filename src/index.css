@@ -7,18 +7,24 @@
   --color-cream-50: #fbf9f4;
   --color-cream-100: #f5f1e8;
   --color-cream-200: #ebe4d5;
+  --color-cream-300: #ddd3bf;
 
   --color-ink-500: #6b6455;
+  --color-ink-400: #8a8373;
   --color-ink-600: #4d4738;
   --color-ink-700: #37332a;
   --color-ink-800: #262319;
   --color-ink-900: #1a180f;
 
   --color-sage-100: #dcebe3;
+  --color-sage-50: #eef6f1;
+  --color-sage-200: #bcdccb;
   --color-sage-300: #93c5ab;
+  --color-sage-400: #6fae8c;
   --color-sage-500: #4c9a70;
   --color-sage-600: #3d7f5b;
   --color-sage-700: #2f6346;
+  --color-sage-800: #244c36;
 
   --color-clay-100: #fbe9dd;
   --color-clay-300: #eeb593;
@@ -30,16 +36,21 @@
   --color-honey-300: #f3d488;
   --color-honey-500: #e0a92e;
   --color-honey-600: #b9861c;
+  --color-honey-700: #8f6714;
 
   --color-sky-soft-100: #dcedf2;
   --color-sky-soft-300: #93c2d3;
   --color-sky-soft-500: #4a91ad;
   --color-sky-soft-600: #3a748b;
+  --color-sky-soft-700: #2c5a6c;
 
   --color-rose-soft-100: #f9e3e7;
+  --color-rose-soft-200: #f2c6d0;
   --color-rose-soft-300: #e8a4b3;
   --color-rose-soft-500: #c65d76;
   --color-rose-soft-600: #a6465d;
+  --color-rose-soft-700: #853649;
+  --color-rose-soft-800: #632838;
 }
 
 body {
@@ -57,7 +68,7 @@ body {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -95,4 +106,65 @@ body {
 }
 *::-webkit-scrollbar {
   display: none;
+}
+
+/* Display preferences (Settings → Appearance) */
+html.lh-text-small {
+  font-size: 93.75%;
+}
+html.lh-text-large {
+  font-size: 112.5%;
+}
+
+html.lh-dark {
+  --color-white: #1f2421;
+  --color-cream-50: #161a17;
+  --color-cream-100: #252b27;
+  --color-cream-200: #343c37;
+  --color-ink-500: #a9b0a8;
+  --color-ink-600: #c4cac2;
+  --color-ink-700: #d8ddd5;
+  --color-ink-800: #eceee9;
+  --color-ink-900: #000000;
+  --color-sage-50: #1c2a22;
+  --color-sage-100: #24372c;
+  --color-sage-200: #2f4a3a;
+  --color-sage-800: #cfe8da;
+  --color-cream-300: #46504a;
+  --color-ink-400: #8d958c;
+  --color-clay-100: #3d2a1f;
+  --color-honey-100: #3b331b;
+  --color-sky-soft-100: #1d3038;
+  --color-rose-soft-100: #3b2329;
+}
+
+html.lh-contrast {
+  --color-ink-500: #3f3a2e;
+  --color-ink-600: #2b271e;
+  --color-ink-700: #1d1a13;
+  --color-ink-800: #0f0d08;
+  --color-cream-200: #b9ae97;
+  --color-sage-600: #2a5c40;
+}
+html.lh-dark.lh-contrast {
+  --color-ink-500: #d5dad3;
+  --color-ink-600: #e4e8e2;
+  --color-ink-700: #f1f3ef;
+  --color-ink-800: #ffffff;
+  --color-cream-200: #5d675f;
+  --color-sage-600: #6cc196;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-sage-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

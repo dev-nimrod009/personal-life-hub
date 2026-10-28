@@ -27,7 +27,17 @@ const PASSKEY_FLAG = "lifehub:has-passkey";
 const PIN_KEY = "lifehub:local-pin";
 const OFFLINE_USER_KEY = "lifehub:offline-user";
 const LAST_ACTIVITY_KEY = "lifehub:last-activity";
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+const LOCKED_KEY = "lifehub:locked";
+const AUTOLOCK_KEY = "lifehub:autolock";
+
+function idleTimeoutMs(): number {
+  const minutes = Number(getStoredValue(AUTOLOCK_KEY));
+  return (Number.isFinite(minutes) && minutes > 0 ? minutes : 30) * 60 * 1000;
+}
+
+function isLocked(): boolean {
+  return getStoredValue(LOCKED_KEY) === "1" && Boolean(getStoredValue(PIN_KEY));
+}
 
 function readOfflineUser(): Pick<User, "id" | "email"> | null {
   try {
@@ -62,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [offlineAccess, setOfflineAccess] = useState(false);
   const lastActivityRef = useRef(0);
+  const lockedSessionRef = useRef<Session | null>(null);
   const [hasPasskey, setHasPasskey] = useState(() => getStoredValue(PASSKEY_FLAG) === "1");
   const [hasLocalPin, setHasLocalPin] = useState(() => getStoredValue(PIN_KEY) !== null);
 
@@ -76,23 +87,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     void supabase.auth.getSession().then(async ({ data }) => {
-      if (data.session) {
+      if (data.session && isLocked()) {
+        lockedSessionRef.current = data.session;
+      } else if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
         setStoredValue(
           OFFLINE_USER_KEY,
           JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
         );
-      } else {
+      } else if (!isLocked()) {
         await restoreOfflineAccess();
       }
       setLoading(false);
     }).catch(async () => {
-      await restoreOfflineAccess();
+      if (!isLocked()) await restoreOfflineAccess();
       setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (nextSession && isLocked() && event !== "SIGNED_IN") {
+        lockedSessionRef.current = nextSession;
+        setLoading(false);
+        return;
+      }
+      if (event === "SIGNED_IN") removeStoredValue(LOCKED_KEY);
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setOfflineAccess(false);
@@ -117,11 +136,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signOutForInactivity = () => {
       removeStoredValue(LAST_ACTIVITY_KEY);
       if (getStoredValue(PIN_KEY)) {
-        // Lock session instead of full sign-out when PIN is configured
+        // Lock instead of signing out when a PIN is configured; the session is kept for PIN/biometric unlock
+        lockedSessionRef.current = session;
+        setStoredValue(LOCKED_KEY, "1");
         setOfflineAccess(false);
         setSession(null);
         setUser(null);
-        removeStoredValue(OFFLINE_USER_KEY);
         return;
       }
       removeStoredValue(OFFLINE_USER_KEY);
@@ -131,11 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const checkIdle = () => {
       const elapsed = Date.now() - lastActivityRef.current;
-      if (elapsed >= IDLE_TIMEOUT_MS) {
+      if (elapsed >= idleTimeoutMs()) {
         signOutForInactivity();
         return;
       }
-      timer = window.setTimeout(checkIdle, IDLE_TIMEOUT_MS - elapsed);
+      timer = window.setTimeout(checkIdle, idleTimeoutMs() - elapsed);
     };
 
     const recordActivity = () => {
@@ -151,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let timer: number;
     const previousActivity = Number(getStoredValue(LAST_ACTIVITY_KEY));
     lastActivityRef.current = previousActivity || Date.now();
-    if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+    if (Date.now() - lastActivityRef.current >= idleTimeoutMs()) {
       signOutForInactivity();
       return;
     }
@@ -248,6 +268,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         });
         if (cred) {
+          removeStoredValue(LOCKED_KEY);
+          setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+          const locked = lockedSessionRef.current;
+          lockedSessionRef.current = null;
+          if (locked) {
+            setSession(locked);
+            setUser(locked.user);
+            setOfflineAccess(false);
+            return { error: null };
+          }
           const cachedUser = readOfflineUser() ?? { id: "local-user", email: "offline@lifehub.local" };
           setUser(cachedUser);
           setOfflineAccess(true);
@@ -312,6 +342,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const unlockWithLocalPin = async (pin: string): Promise<boolean> => {
     const ok = await verifyLocalPin(pin);
     if (ok) {
+      removeStoredValue(LOCKED_KEY);
+      setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+      const locked = lockedSessionRef.current;
+      lockedSessionRef.current = null;
+      if (locked) {
+        setSession(locked);
+        setUser(locked.user);
+        setOfflineAccess(false);
+        return true;
+      }
       const cached = readOfflineUser() ?? { id: "local-user", email: "offline@lifehub.local" };
       setUser(cached);
       setOfflineAccess(true);
@@ -322,6 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearLocalPin = () => {
     removeStoredValue(PIN_KEY);
+    removeStoredValue(LOCKED_KEY);
     setHasLocalPin(false);
   };
 
@@ -332,6 +373,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOfflineAccess(false);
     removeStoredValue(OFFLINE_USER_KEY);
     removeStoredValue(LAST_ACTIVITY_KEY);
+    removeStoredValue(LOCKED_KEY);
+    lockedSessionRef.current = null;
   };
 
   return (
