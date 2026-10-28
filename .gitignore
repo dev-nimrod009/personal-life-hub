@@ -7,3 +7,9 @@ dist/
 .ideavo/project
 *.log
 .playwright-cli/
+.aistudio/
+.replit
+.bolt/
+.bolt
+.vscode/
+.idea/
