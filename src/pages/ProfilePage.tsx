@@ -11,7 +11,17 @@ import {
   Clock,
   Flame,
 } from "lucide-react";
-import { getProfile, updateProfile, listDiary, listJournal, listHabits, listGoals } from "../lib/data";
+import {
+  getProfile,
+  updateProfile,
+  listDiary,
+  listJournal,
+  listHabits,
+  listHabitLogs,
+  listGoals,
+  listMoods,
+  listWater,
+} from "../lib/data";
 import { backupToFile, restoreFromText } from "../lib/backup";
 import { useAuth } from "../lib/auth";
 import type { Profile } from "../lib/types";
@@ -28,6 +38,47 @@ const AVATAR_PRESETS = [
   { emoji: "🌊", label: "Wave" },
   { emoji: "🌻", label: "Sunflower" },
 ];
+
+
+function localDateKey(d: Date): string {
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Consecutive days with any habit done, counting back from today (or yesterday if today isn't logged yet).
+function habitStreak(doneDates: Set<string>): number {
+  const d = new Date();
+  if (!doneDates.has(localDateKey(d))) d.setDate(d.getDate() - 1);
+  let count = 0;
+  while (doneDates.has(localDateKey(d))) {
+    count++;
+    d.setDate(d.getDate() - 1);
+  }
+  return count;
+}
+
+function compressImage(file: File, maxSize = 512): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      URL.revokeObjectURL(url);
+      if (!ctx) return reject(new Error("Canvas unavailable"));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not read image"));
+    };
+    img.src = url;
+  });
+}
 
 export function ProfilePage() {
   const {
@@ -62,8 +113,8 @@ export function ProfilePage() {
     journal: 0,
     habits: 0,
     goals: 0,
-    streak: 4,
-    daysActive: 12,
+    streak: 0,
+    daysActive: 0,
   });
   const [photoError, setPhotoError] = useState("");
   const [pinOpen, setPinOpen] = useState(false);
@@ -80,13 +131,23 @@ export function ProfilePage() {
     if (!user) return;
     void (async () => {
       try {
-        const [data, diaryList, journalList, habitsList, goalsList] = await Promise.all([
+        const [data, diaryList, journalList, habitsList, goalsList, habitLogs, moods, water] = await Promise.all([
           getProfile(user.id, user.email ?? undefined),
           listDiary().catch(() => []),
           listJournal().catch(() => []),
           listHabits().catch(() => []),
           listGoals().catch(() => []),
+          listHabitLogs().catch(() => []),
+          listMoods().catch(() => []),
+          listWater().catch(() => []),
         ]);
+        const activeDays = new Set<string>([
+          ...diaryList.map((d) => d.entry_date),
+          ...journalList.map((j) => localDateKey(new Date(j.created_at))),
+          ...habitLogs.map((l) => l.log_date),
+          ...moods.map((m) => m.mood_date),
+          ...water.filter((w) => w.glasses > 0).map((w) => w.intake_date),
+        ].filter(Boolean));
         if (data) {
           setProfile(data);
           setForm({
@@ -103,9 +164,9 @@ export function ProfilePage() {
           diary: diaryList.length,
           journal: journalList.length,
           habits: habitsList.length,
-          goals: goalsList.length,
-          streak: 5,
-          daysActive: Math.max(1, diaryList.length + 3),
+          goals: goalsList.filter((g) => g.done).length,
+          streak: habitStreak(new Set(habitLogs.map((l) => l.log_date))),
+          daysActive: activeDays.size,
         });
         setError("");
       } catch {
@@ -142,19 +203,13 @@ export function ProfilePage() {
 
   const handlePhotoUpload = async (file: File) => {
     setPhotoError("");
-    if (file.size > 2 * 1024 * 1024) {
-      setPhotoError("Photo is larger than 2 MB. It will be compressed automatically.");
-    }
     if (!file.type.startsWith("image/")) {
       setPhotoError("Please choose an image file.");
       return;
     }
     try {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setForm((prev) => ({ ...prev, avatar_url: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      const avatar = await compressImage(file);
+      setForm((prev) => ({ ...prev, avatar_url: avatar }));
     } catch {
       setPhotoError("Could not process photo.");
     }

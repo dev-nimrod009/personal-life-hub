@@ -29,6 +29,7 @@ import {
 } from "../lib/data";
 import type { DayPlanTask, Habit, HabitLog, Mood, Reminder, WaterIntake, Profile, Meal } from "../lib/types";
 import { useAuth } from "../lib/auth";
+import { isSupabaseConfigured } from "../lib/supabase";
 import { useEnabledModules } from "../components/nav";
 import { Button, Input, Label, Modal } from "../components/ui";
 import { formatDay, todayISO } from "../lib/utils";
@@ -220,7 +221,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {apiOnline === false && (
+          {isSupabaseConfigured && apiOnline === false && (
             <div
               className={`sm:col-span-2 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${
                 sync.pending > 0 ? "bg-honey-500/15 text-amber-700" : "bg-cream-100 text-ink-500"

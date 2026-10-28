@@ -299,7 +299,17 @@ function byDateDesc(a: Row, b: Row): number {
 
 export async function getProfile(userId: string, email?: string): Promise<Profile | null> {
   const rows = await fetchAll("profiles");
-  const own = rows.find((r) => r.id === userId);
+  let own = rows.find((r) => r.id === userId);
+  if (!own && userId.startsWith("local-") && email) {
+    // Older offline sign-ins minted a new id each time; carry the latest profile for this email forward.
+    const previous = rows
+      .filter((r) => String(r.email ?? "").toLowerCase() === email.toLowerCase())
+      .sort((a, b) => String(b.updated_at ?? "").localeCompare(String(a.updated_at ?? "")))[0];
+    if (previous) {
+      own = { ...previous, id: userId };
+      await remoteOrQueue({ table: "profiles", kind: "insert", row: own });
+    }
+  }
   if (own) {
     return {
       id: userId,

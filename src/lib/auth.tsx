@@ -39,6 +39,16 @@ function isLocked(): boolean {
   return getStoredValue(LOCKED_KEY) === "1" && Boolean(getStoredValue(PIN_KEY));
 }
 
+// Offline accounts keep one id per email so their data and profile survive signing in again.
+function localUserFor(email: string): { id: string; email: string } {
+  const normalized = email.trim().toLowerCase();
+  const cached = readOfflineUser();
+  if (cached?.id.startsWith("local-") && (cached.email ?? "").toLowerCase() === normalized) {
+    return { id: cached.id, email };
+  }
+  return { id: `local-${normalized}`, email };
+}
+
 function readOfflineUser(): Pick<User, "id" | "email"> | null {
   try {
     const cached: unknown = JSON.parse(getStoredValue(OFFLINE_USER_KEY) ?? "null");
@@ -194,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
       if (!isSupabaseConfigured) {
-        const localUser = { id: `local-${Date.now()}`, email };
+        const localUser = localUserFor(email);
         setUser(localUser);
         setOfflineAccess(true);
         setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
@@ -206,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (error) {
       if (!isSupabaseConfigured || (error instanceof Error && error.message.toLowerCase().includes("fetch"))) {
-        const localUser = { id: `local-${Date.now()}`, email };
+        const localUser = localUserFor(email);
         setUser(localUser);
         setOfflineAccess(true);
         setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
@@ -219,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
       if (!isSupabaseConfigured) {
-        const localUser = { id: `local-${Date.now()}`, email };
+        const localUser = localUserFor(email);
         setUser(localUser);
         setOfflineAccess(true);
         setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
@@ -229,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error?.message ?? null };
     } catch (error) {
       if (!isSupabaseConfigured || (error instanceof Error && error.message.toLowerCase().includes("fetch"))) {
-        const localUser = { id: `local-${Date.now()}`, email };
+        const localUser = localUserFor(email);
         setUser(localUser);
         setOfflineAccess(true);
         setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));

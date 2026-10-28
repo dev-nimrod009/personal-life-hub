@@ -87,6 +87,7 @@ export function HabitsPage() {
   };
 
   const toggle = async (habit: Habit, date: string) => {
+    if (date > todayISO()) return;
     try {
       await toggleHabitLog(habit.id, date);
     } catch {
@@ -193,8 +194,8 @@ export function HabitsPage() {
                     const doneToday = habitLogs.some((l) => l.log_date === date);
                     const isToday = date === todayISO();
                     return (
+                      <div key={date} className="flex flex-col items-center gap-1">
                       <button
-                        key={date}
                         onClick={() => toggle(habit, date)}
                         className={cn(
                           "w-6 h-6 rounded-full border-2 transition-all duration-200 active:scale-90",
@@ -203,6 +204,10 @@ export function HabitsPage() {
                         )}
                         aria-label={`${doneToday ? "Uncheck" : "Check"} ${habitName} on ${date}`}
                       />
+                      <span className={cn("text-[10px] leading-none", isToday ? "font-semibold text-sage-700" : "text-ink-400")}>
+                        {isToday ? "Today" : new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: "narrow" })}
+                      </span>
+                      </div>
                     );
                   })}
                 </div>
