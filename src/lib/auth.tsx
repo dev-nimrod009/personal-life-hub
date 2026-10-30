@@ -348,7 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           publicKey: {
             challenge: crypto.getRandomValues(new Uint8Array(32)),
             timeout: 60000,
-            userVerification: "preferred",
+            userVerification: "required",
           },
         });
         if (cred) {
@@ -394,7 +394,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const cred = await navigator.credentials.create({
           publicKey: {
             challenge: crypto.getRandomValues(new Uint8Array(32)),
-            rp: { name: "Life Hub" },
+            rp: { name: "Life Hub", id: window.location.hostname },
             user: {
               id: new TextEncoder().encode(user?.id || "local-user"),
               name: user?.email || "user@lifehub.local",
@@ -402,7 +402,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
             pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
             timeout: 60000,
-            authenticatorSelection: { residentKey: "preferred", userVerification: "preferred" },
+            authenticatorSelection: {
+              authenticatorAttachment: "platform",
+              residentKey: "required",
+              userVerification: "required",
+            },
+            attestation: "none",
           },
         });
         if (cred) {
