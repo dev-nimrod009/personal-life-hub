@@ -195,18 +195,6 @@ export function SettingsPage() {
             <Button variant="secondary" size="sm" onClick={() => void signOut()}>
               Sign out
             </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                if (window.confirm("Are you sure you want to clear all local data and sign out?")) {
-                  clearLocalData();
-                  void signOut();
-                }
-              }}
-            >
-              <Trash2 size={14} /> Clear local data &amp; Delete account
-            </Button>
           </div>
         </div>
       </section>

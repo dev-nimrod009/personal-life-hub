@@ -4,9 +4,9 @@ import { useAuth } from "../lib/auth";
 import { Button, Input, Label } from "../components/ui";
 
 export function SignInScreen() {
-  const { signIn, signUp, signInWithPasskey, hasLocalPin, unlockWithLocalPin, hasPasskey } = useAuth();
+  const { signIn, signUp, signInWithPasskey, hasLocalPin, unlockWithLocalPin, hasPasskey, clearPasskey } = useAuth();
   const [unlockMode, setUnlockMode] = useState<"pin" | "biometric" | "account">(() =>
-    hasPasskey ? "biometric" : hasLocalPin ? "pin" : "account"
+    hasLocalPin ? "pin" : "account"
   );
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -18,14 +18,7 @@ export function SignInScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  useEffect(() => {
-    if (hasPasskey && unlockMode === "biometric") {
-      const timer = window.setTimeout(() => {
-        void handleBiometric();
-      }, 350);
-      return () => window.clearTimeout(timer);
-    }
-  }, []);
+  // We deliberately do NOT auto-trigger biometrics on mount to prevent infinite error loops and browser prompt blocks
 
   const submitAccount = async () => {
     setError("");
@@ -51,6 +44,8 @@ export function SignInScreen() {
       } else {
         setError(result.error);
       }
+    } else {
+      setError("");
     }
   };
 
@@ -76,8 +71,11 @@ export function SignInScreen() {
     setBusy(false);
     if (result.error) {
       setError(result.error);
+      // Fallback cleanly so user is never trapped
       if (hasLocalPin) {
         setUnlockMode("pin");
+      } else {
+        setUnlockMode("account");
       }
     }
   };
@@ -97,9 +95,9 @@ export function SignInScreen() {
 
         {/* Biometric Unlock Mode */}
         {unlockMode === "biometric" && hasPasskey ? (
-          <div className="space-y-5 animate-fade-up text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sage-100 text-sage-600 mb-2">
-              <Fingerprint size={28} className="animate-pulse" />
+          <div className="space-y-4 animate-fade-up text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sage-100 text-sage-600 mb-1">
+              <Fingerprint size={28} />
             </div>
             <div>
               <h2 className="font-display text-lg font-semibold text-ink-800">Biometric Unlock</h2>
@@ -127,6 +125,18 @@ export function SignInScreen() {
               className="w-full text-center text-xs text-ink-600 hover:text-sage-700 font-medium py-1 transition-colors"
             >
               Sign in with email and password instead
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                clearPasskey();
+                setError("");
+                setUnlockMode(hasLocalPin ? "pin" : "account");
+              }}
+              className="w-full text-center text-xs text-rose-soft-500 hover:text-rose-soft-700 font-medium py-1 transition-colors"
+            >
+              Disable biometrics on this device
             </button>
           </div>
         ) : unlockMode === "pin" && hasLocalPin ? (

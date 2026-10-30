@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sparkles, ShieldCheck, Droplets, Smile, CheckCircle2, Wallet, BookOpen, Heart } from "lucide-react";
+import { Sparkles, ShieldCheck, Droplets, Smile, CheckCircle2, Wallet, BookOpen, Heart, Clock, Flame } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { listWater, listMoods, listHabitLogs, listJournal, listDiary, listBudgetItems, listGratitude } from "../lib/data";
 import { EmptyState, SectionHeader } from "../components/ui";
@@ -28,6 +28,11 @@ function weekdayOf(iso: string): number {
 export function InsightsPage() {
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [activityStats, setActivityStats] = useState({
+    daysActive: 0,
+    streak: 0,
+    totalEntries: 0,
+  });
 
   useEffect(() => {
     void (async () => {
@@ -41,6 +46,43 @@ export function InsightsPage() {
           listBudgetItems().catch(() => []),
           listGratitude().catch(() => []),
         ]);
+
+        // Compute Days in Life Hub across all features
+        const activeDays = new Set<string>([
+          ...diary.map((d) => d.entry_date),
+          ...journals.map((j) => (j.created_at || "").slice(0, 10)),
+          ...habitLogs.map((l) => l.log_date),
+          ...moods.map((m) => m.mood_date),
+          ...water.filter((w) => w.glasses > 0).map((w) => w.intake_date),
+          ...gratitude.map((g) => g.entry_date),
+          ...budget.map((b) => b.item_date),
+        ].filter(Boolean));
+
+        // Habit streak
+        const habitDoneDays = new Set(habitLogs.filter((l) => l.done !== false).map((l) => l.log_date));
+        const d = new Date();
+        const todayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        if (!habitDoneDays.has(todayKey)) {
+          d.setDate(d.getDate() - 1);
+        }
+        let streakCount = 0;
+        for (let i = 0; i < 365; i++) {
+          const cur = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i);
+          const curKey = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
+          if (habitDoneDays.has(curKey)) {
+            streakCount++;
+          } else {
+            break;
+          }
+        }
+
+        const totalEntries = diary.length + journals.length + habitLogs.length + gratitude.length + moods.length;
+
+        setActivityStats({
+          daysActive: activeDays.size,
+          streak: streakCount,
+          totalEntries,
+        });
 
         const items: Insight[] = [];
         const moodByDate = new Map(moods.map((m) => [m.mood_date, m.score]));
@@ -168,6 +210,37 @@ export function InsightsPage() {
   return (
     <div className="animate-fade-up pb-12">
       <SectionHeader title="Local Insights" subtitle="Gentle patterns found in your own entries — calculated on this device only" />
+
+      {/* Days in Life Hub & Journey Overview */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+        <div className="bg-white rounded-2xl border border-cream-200 p-4 shadow-xs">
+          <div className="flex items-center gap-1.5 text-sage-600 text-xs font-semibold uppercase tracking-wider mb-1">
+            <Clock size={14} /> Days in Life Hub
+          </div>
+          <p className="font-display text-2xl font-bold text-ink-800">
+            {activityStats.daysActive} {activityStats.daysActive === 1 ? "day" : "days"}
+          </p>
+          <p className="text-[11px] text-ink-500">recorded on this device</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-cream-200 p-4 shadow-xs">
+          <div className="flex items-center gap-1.5 text-sage-600 text-xs font-semibold uppercase tracking-wider mb-1">
+            <Flame size={14} /> Habit Streak
+          </div>
+          <p className="font-display text-2xl font-bold text-ink-800">
+            {activityStats.streak} {activityStats.streak === 1 ? "day" : "days"}
+          </p>
+          <p className="text-[11px] text-ink-500">active habit rhythm</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-cream-200 p-4 shadow-xs col-span-2 sm:col-span-1">
+          <div className="flex items-center gap-1.5 text-sage-600 text-xs font-semibold uppercase tracking-wider mb-1">
+            <BookOpen size={14} /> Total Entries
+          </div>
+          <p className="font-display text-2xl font-bold text-ink-800">{activityStats.totalEntries}</p>
+          <p className="text-[11px] text-ink-500">reflections, habits & logs</p>
+        </div>
+      </div>
 
       <div className="bg-sage-100/60 rounded-2xl border border-sage-300/60 p-5 mb-6 flex items-start gap-3">
         <ShieldCheck size={20} className="text-sage-600 shrink-0 mt-0.5" />

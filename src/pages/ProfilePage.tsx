@@ -10,6 +10,7 @@ import {
   Target,
   Clock,
   Flame,
+  CheckCircle2,
 } from "lucide-react";
 import {
   getProfile,
@@ -91,6 +92,7 @@ export function ProfilePage() {
     user,
     registerPasskey,
     hasPasskey,
+    clearPasskey,
     setupLocalPin,
     unlockWithLocalPin,
     hasLocalPin,
@@ -385,7 +387,9 @@ export function ProfilePage() {
                 <div className="flex items-center gap-1.5 text-sage-600 text-xs font-semibold uppercase tracking-wider mb-1">
                   <Flame size={13} /> Streak
                 </div>
-                <p className="font-display text-xl font-bold text-ink-800">{stats.streak} days</p>
+                <p className="font-display text-xl font-bold text-ink-800">
+                  {stats.streak} {stats.streak === 1 ? "day" : "days"}
+                </p>
                 <p className="text-[11px] text-ink-500">active habit streak</p>
               </div>
 
@@ -407,10 +411,10 @@ export function ProfilePage() {
 
               <div className="bg-cream-50/80 rounded-xl p-3 border border-cream-100">
                 <div className="flex items-center gap-1.5 text-sage-600 text-xs font-semibold uppercase tracking-wider mb-1">
-                  <Clock size={13} /> Days Active
+                  <CheckCircle2 size={13} /> Habits
                 </div>
-                <p className="font-display text-xl font-bold text-ink-800">{stats.daysActive}</p>
-                <p className="text-[11px] text-ink-500">total life hub days</p>
+                <p className="font-display text-xl font-bold text-ink-800">{stats.habits}</p>
+                <p className="text-[11px] text-ink-500">{stats.habits === 1 ? "active habit" : "active habits"}</p>
               </div>
             </div>
           </section>

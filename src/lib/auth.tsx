@@ -13,6 +13,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithPasskey: () => Promise<{ error: string | null }>;
   registerPasskey: () => Promise<{ error: string | null }>;
+  clearPasskey: () => void;
   setupLocalPin: (pin: string) => Promise<void>;
   unlockWithLocalPin: (pin: string) => Promise<boolean>;
   hasLocalPin: boolean;
@@ -240,6 +241,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
+      removeStoredValue(LOCKED_KEY);
+      setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+      lockedSessionRef.current = null;
       if (!isSupabaseConfigured) {
         const localUser = localUserFor(email);
         setUser(localUser);
@@ -247,12 +251,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
         return { error: null };
       }
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) return { error: error.message };
-      setUser((await supabase.auth.getUser()).data.user ?? null);
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      } else {
+        setUser((await supabase.auth.getUser()).data.user ?? null);
+      }
+      setOfflineAccess(false);
       return { error: null };
     } catch (error) {
       if (!isSupabaseConfigured || (error instanceof Error && error.message.toLowerCase().includes("fetch"))) {
+        removeStoredValue(LOCKED_KEY);
+        setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+        lockedSessionRef.current = null;
         const localUser = localUserFor(email);
         setUser(localUser);
         setOfflineAccess(true);
@@ -266,16 +279,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
       if (!isSupabaseConfigured) {
+        removeStoredValue(LOCKED_KEY);
+        setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+        lockedSessionRef.current = null;
         const localUser = localUserFor(email);
         setUser(localUser);
         setOfflineAccess(true);
         setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
         return { error: null };
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return { error: error?.message ?? null };
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error: error.message };
+      removeStoredValue(LOCKED_KEY);
+      setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+      lockedSessionRef.current = null;
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        setOfflineAccess(false);
+        setStoredValue(
+          OFFLINE_USER_KEY,
+          JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
+        );
+      }
+      return { error: null };
     } catch (error) {
       if (!isSupabaseConfigured || (error instanceof Error && error.message.toLowerCase().includes("fetch"))) {
+        removeStoredValue(LOCKED_KEY);
+        setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+        lockedSessionRef.current = null;
         const localUser = localUserFor(email);
         setUser(localUser);
         setOfflineAccess(true);
@@ -301,7 +333,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isSupabaseConfigured) {
         try {
           const { error } = await supabase.auth.signInWithPasskey();
-          if (!error) return { error: null };
+          if (!error) {
+            removeStoredValue(LOCKED_KEY);
+            setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+            lockedSessionRef.current = null;
+            return { error: null };
+          }
         } catch {
           // Fall through to local credential verification
         }
@@ -331,9 +368,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { error: null };
         }
       }
-      return { error: "Biometric unlock canceled. Please enter your PIN." };
+      return { error: "Biometric unlock canceled. Please enter your PIN or password." };
     } catch (e) {
-      return { error: "Biometric unlock unavailable. Please enter your PIN." };
+      return { error: "Biometric unlock unavailable on this device. Please sign in with password or PIN." };
     }
   };
 
@@ -365,7 +402,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
             pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
             timeout: 60000,
-            authenticatorSelection: { userVerification: "preferred" },
+            authenticatorSelection: { residentKey: "preferred", userVerification: "preferred" },
           },
         });
         if (cred) {
@@ -378,6 +415,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Biometric setup failed on this device." };
     }
+  };
+
+  const clearPasskey = () => {
+    removeStoredValue(PASSKEY_FLAG);
+    removeStoredValue(LOCKED_KEY);
+    setHasPasskey(false);
   };
 
   const setupLocalPin = async (pin: string): Promise<void> => {
@@ -435,6 +478,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signInWithPasskey,
         registerPasskey,
+        clearPasskey,
         setupLocalPin,
         unlockWithLocalPin,
         hasLocalPin,

@@ -32,6 +32,13 @@ export function NotesPage() {
   const [lockPasscode, setLockPasscode] = useState("");
   const [lockError, setLockError] = useState("");
   const [pendingNoteToOpen, setPendingNoteToOpen] = useState<Note | null>(null);
+  type PendingUnlockAction =
+    | { type: "open-note"; note: Note }
+    | { type: "filter-category"; category: "Private" }
+    | { type: "set-editor-category"; category: "Private" }
+    | { type: "new-private-note" }
+    | null;
+  const [pendingUnlockAction, setPendingUnlockAction] = useState<PendingUnlockAction>(null);
 
   // Full-screen page editor state
   const [editorOpen, setEditorOpen] = useState(false);
@@ -67,7 +74,7 @@ export function NotesPage() {
     if (targetCat === "Private" && !privateUnlocked) {
       setLockError("");
       setLockPasscode("");
-      setPendingNoteToOpen(null);
+      setPendingUnlockAction({ type: "new-private-note" });
       setLockModalOpen(true);
       return;
     }
@@ -84,7 +91,7 @@ export function NotesPage() {
     if (note.category === "Private" && !privateUnlocked) {
       setLockError("");
       setLockPasscode("");
-      setPendingNoteToOpen(note);
+      setPendingUnlockAction({ type: "open-note", note });
       setLockModalOpen(true);
       return;
     }
@@ -174,27 +181,35 @@ export function NotesPage() {
     }
     const storedHash = getStoredValue(PRIVATE_KEY_STORAGE);
     const enteredHash = await hashKey(lockPasscode);
+    const isMatch = !storedHash || enteredHash === storedHash;
 
     if (!storedHash) {
       // First time setting private passcode
       setStoredValue(PRIVATE_KEY_STORAGE, enteredHash);
-      setPrivateUnlocked(true);
-      setLockModalOpen(false);
-      setLockPasscode("");
-      if (pendingNoteToOpen) openEdit(pendingNoteToOpen);
-      else if (selectedCategory === "Private") {
-        // stay on category
-      } else {
-        openNew("Private");
-      }
-      return;
     }
 
-    if (enteredHash === storedHash) {
+    if (isMatch) {
       setPrivateUnlocked(true);
       setLockModalOpen(false);
       setLockPasscode("");
-      if (pendingNoteToOpen) openEdit(pendingNoteToOpen);
+      const action = pendingUnlockAction;
+      setPendingUnlockAction(null);
+
+      if (action) {
+        if (action.type === "open-note") {
+          openEdit(action.note);
+        } else if (action.type === "set-editor-category") {
+          setCategory("Private");
+          handleContentChange(title, content, "Private", pinned);
+        } else if (action.type === "filter-category") {
+          setSelectedCategory("Private");
+        } else if (action.type === "new-private-note") {
+          openNew("Private");
+        }
+      } else if (pendingNoteToOpen) {
+        openEdit(pendingNoteToOpen);
+        setPendingNoteToOpen(null);
+      }
     } else {
       setLockError("Incorrect passcode. Try again.");
     }
@@ -282,6 +297,7 @@ export function NotesPage() {
                   key={cat}
                   onClick={() => {
                     if (cat === "Private" && !privateUnlocked) {
+                      setPendingUnlockAction({ type: "set-editor-category", category: "Private" });
                       setLockError("");
                       setLockPasscode("");
                       setLockModalOpen(true);
@@ -292,8 +308,8 @@ export function NotesPage() {
                   className={`text-xs px-3 py-1.5 rounded-full transition-all ${
                     category === cat
                       ? cat === "Private"
-                        ? "bg-rose-soft-600 text-white font-medium"
-                        : "bg-sage-600 text-white font-medium"
+                        ? "bg-rose-soft-600 text-white font-medium shadow-xs"
+                        : "bg-sage-600 text-white font-medium shadow-xs"
                       : "bg-white border border-cream-200 text-ink-600 hover:bg-cream-100"
                   }`}
                 >
@@ -309,7 +325,7 @@ export function NotesPage() {
               value={title}
               onChange={(e) => handleContentChange(e.target.value, content, category, pinned)}
               placeholder="Title..."
-              className="font-display text-2xl sm:text-4xl font-semibold text-ink-900 placeholder:text-ink-300 bg-transparent border-0 focus:outline-none w-full"
+              className="font-display text-2xl sm:text-4xl font-semibold text-ink-900 placeholder:text-ink-300 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 ring-0 w-full p-0 tracking-tight shadow-none"
             />
 
             {/* Note Writing Component - Big, auto-expanding space */}
@@ -317,7 +333,7 @@ export function NotesPage() {
               value={content}
               onChange={(e) => handleContentChange(title, e.target.value, category, pinned)}
               placeholder="Start writing here... Your changes auto-save continuously."
-              className="font-sans text-base sm:text-lg leading-relaxed text-ink-800 placeholder:text-ink-400/50 bg-transparent border-0 focus:outline-none w-full flex-1 min-h-[60vh] resize-none"
+              className="font-sans text-base sm:text-lg leading-relaxed text-ink-800 placeholder:text-ink-400/50 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 ring-0 w-full flex-1 min-h-[60vh] resize-none p-0 shadow-none"
               autoFocus
             />
           </div>
@@ -367,6 +383,7 @@ export function NotesPage() {
               key={cat}
               onClick={() => {
                 if (cat === "Private" && !privateUnlocked) {
+                  setPendingUnlockAction({ type: "filter-category", category: "Private" });
                   setLockError("");
                   setLockPasscode("");
                   setPendingNoteToOpen(null);
@@ -506,6 +523,7 @@ export function NotesPage() {
                 onClick={() => {
                   setLockModalOpen(false);
                   setLockPasscode("");
+                  setPendingUnlockAction(null);
                 }}
               >
                 Cancel
