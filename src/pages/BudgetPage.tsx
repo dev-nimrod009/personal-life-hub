@@ -182,14 +182,14 @@ export function BudgetPage() {
         </div>
       </section>
 
-      <section className="bg-white rounded-2xl border border-cream-200 p-5 mb-5 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-sage-50 text-sage-600 flex items-center justify-center shrink-0">
-            <Leaf size={18} aria-hidden="true" />
+      <section className="bg-white rounded-2xl border border-cream-200 p-4 mb-4 shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-sage-50 text-sage-600 flex items-center justify-center shrink-0">
+            <Leaf size={14} aria-hidden="true" />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-sm text-ink-800">The "Enough" Mindset</h3>
-            <p className="text-xs text-ink-600 mt-0.5 leading-relaxed">
+            <h3 className="font-display font-semibold text-xs text-ink-800">The "Enough" Mindset</h3>
+            <p className="text-[11px] text-ink-600 leading-relaxed">
               {enoughNote}
             </p>
           </div>
@@ -197,20 +197,20 @@ export function BudgetPage() {
       </section>
 
       {plannedItems.length > 0 && (
-        <section className="bg-white rounded-2xl border border-cream-200 p-5 mb-5">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <h2 className="font-display text-base font-semibold text-ink-800">Wishlist / Planned Purchases</h2>
+        <section className="bg-white rounded-2xl border border-cream-200 p-4 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-2.5">
+            <h2 className="font-display text-sm font-semibold text-ink-800">Wishlist / Planned Purchases</h2>
             <span className="text-xs text-ink-500">{plannedItems.length} planned</span>
           </div>
           <ul className="space-y-2">
             {plannedItems.map((item) => (
-              <li key={item.id} className="flex items-center gap-3 rounded-xl border border-cream-200 px-3 py-3">
-                <ShoppingCart size={16} className="text-sage-600 shrink-0" />
+              <li key={item.id} className="flex items-center gap-2.5 rounded-xl border border-cream-200 px-3 py-2.5">
+                <ShoppingCart size={14} className="text-sage-600 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-ink-800 truncate">{item.name}</p>
                   {item.quantity && <p className="text-xs text-ink-500">{item.quantity}</p>}
                 </div>
-                <span className="text-sm font-semibold text-ink-700 shrink-0">KES {item.est_cost.toLocaleString()}</span>
+                <span className="text-xs font-semibold text-ink-700 shrink-0">KES {item.est_cost.toLocaleString()}</span>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -223,8 +223,9 @@ export function BudgetPage() {
                     }
                   }}
                   aria-label={`Mark ${item.name} as bought`}
+                  className="text-xs px-2.5 py-1 h-auto"
                 >
-                  <Check size={14} /> Bought
+                  <Check size={12} /> Bought
                 </Button>
                 <button
                   onClick={async () => {
@@ -235,10 +236,10 @@ export function BudgetPage() {
                       setError("Could not delete planned purchase.");
                     }
                   }}
-                  className="text-ink-400 hover:text-rose-soft-600"
+                  className="text-ink-400 hover:text-rose-soft-600 p-1"
                   aria-label="Delete planned purchase"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={13} />
                 </button>
               </li>
             ))}
@@ -247,16 +248,16 @@ export function BudgetPage() {
       )}
 
       {byCategory.length > 0 && (
-        <section className="bg-white rounded-2xl border border-cream-200 p-5 mb-5">
-          <h2 className="font-display text-base font-semibold text-ink-800 mb-3">Spending by category</h2>
+        <section className="bg-white rounded-2xl border border-cream-200 p-4 mb-4">
+          <h2 className="font-display text-sm font-semibold text-ink-800 mb-2.5">Spending by category</h2>
           <ul className="space-y-2">
             {byCategory.map(([cat, amount]) => (
               <li key={cat}>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-ink-700 font-medium">{cat}</span>
-                  <span className="text-ink-600">KES {amount.toLocaleString()}</span>
+                  <span className="text-ink-600 font-semibold">KES {amount.toLocaleString()}</span>
                 </div>
-                <div className="h-2 rounded-full bg-cream-100 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-cream-100 overflow-hidden">
                   <div className="h-full rounded-full bg-sage-500" style={{ width: `${Math.round((amount / maxCat) * 100)}%` }} />
                 </div>
               </li>
@@ -268,7 +269,7 @@ export function BudgetPage() {
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-xl bg-cream-100 animate-pulse" />)}</div>
       ) : completedItems.length === 0 && plannedItems.length === 0 ? (
-        <EmptyState icon={<Wallet size={26} />} title="No entries yet" hint="Add income or an expense to start tracking your money." />
+        <EmptyState icon={<Wallet size={20} />} title="No entries yet" hint="Add income or an expense to start tracking your money." />
       ) : completedItems.length === 0 ? (
         <p className="rounded-xl border border-cream-200 bg-white px-4 py-3 text-sm text-ink-500">
           No income or expense entries for {monthLabel}.
@@ -276,9 +277,9 @@ export function BudgetPage() {
       ) : (
         <ul className="space-y-2">
           {completedItems.map((item) => (
-            <li key={item.id} className="group flex items-center gap-3 bg-white rounded-xl border border-cream-200 px-4 py-3">
-              <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", item.kind === "income" ? "bg-sage-100" : "bg-rose-soft-100")}>
-                {item.kind === "income" ? <TrendingUp size={15} className="text-sage-600" /> : <TrendingDown size={15} className="text-rose-soft-600" />}
+            <li key={item.id} className="group flex items-center gap-3 bg-white rounded-xl border border-cream-200 px-3.5 py-2.5">
+              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", item.kind === "income" ? "bg-sage-100" : "bg-rose-soft-100")}>
+                {item.kind === "income" ? <TrendingUp size={13} className="text-sage-600" /> : <TrendingDown size={13} className="text-rose-soft-600" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink-800 truncate">{item.category}</p>

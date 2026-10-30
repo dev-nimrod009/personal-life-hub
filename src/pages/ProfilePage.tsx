@@ -47,12 +47,18 @@ function localDateKey(d: Date): string {
 
 // Consecutive days with any habit done, counting back from today (or yesterday if today isn't logged yet).
 function habitStreak(doneDates: Set<string>): number {
+  if (doneDates.size === 0) return 0;
   const d = new Date();
-  if (!doneDates.has(localDateKey(d))) d.setDate(d.getDate() - 1);
+  const todayKey = localDateKey(d);
+  const doneToday = doneDates.has(todayKey);
+  if (!doneToday) {
+    d.setDate(d.getDate() - 1);
+  }
   let count = 0;
   while (doneDates.has(localDateKey(d))) {
     count++;
     d.setDate(d.getDate() - 1);
+    if (count >= 365) break;
   }
   return count;
 }
@@ -154,10 +160,10 @@ export function ProfilePage() {
             full_name: data.full_name ?? "",
             avatar_url: data.avatar_url ?? "",
             bio: data.bio ?? "",
-            current_focus: getStoredValue("lifehub:current-focus") || "Mindfulness and daily focus",
+            current_focus: getStoredValue(`lifehub:current-focus:${user.id}`) || getStoredValue("lifehub:current-focus") || "Mindfulness and daily focus",
             location: data.location ?? "",
             birthday: data.birthday ?? "",
-            timezone: getStoredValue("lifehub:timezone") || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+            timezone: getStoredValue(`lifehub:timezone:${user.id}`) || getStoredValue("lifehub:timezone") || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
           });
         }
         setStats({
@@ -189,8 +195,8 @@ export function ProfilePage() {
         location: form.location.trim(),
         birthday: form.birthday || null,
       });
-      setStoredValue("lifehub:current-focus", form.current_focus);
-      setStoredValue("lifehub:timezone", form.timezone);
+      setStoredValue(`lifehub:current-focus:${user.id}`, form.current_focus);
+      setStoredValue(`lifehub:timezone:${user.id}`, form.timezone);
       setSaved(true);
       setError("");
       window.setTimeout(() => setSaved(false), 2500);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Target, Plus, Trash2, CheckCircle2, CalendarDays, CalendarRange, X } from "lucide-react";
+import { Target, Plus, Trash2, CheckCircle2, Circle, Calendar, Heart, Sparkles, Check } from "lucide-react";
 import {
   listGoals,
   addNewGoal,
@@ -8,26 +8,15 @@ import {
   addGoalStep,
   toggleGoalStepDone,
   deleteGoalStep,
-  setGoalTimeframe,
 } from "../lib/data";
 import type { Goal, GoalStep } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
 import { cn } from "../lib/utils";
 
-const LIFE_AREAS = [
-  { id: "Health", label: "Health & Wellbeing", emoji: "🥗" },
-  { id: "Relationships", label: "Relationships", emoji: "🤍" },
-  { id: "Money", label: "Money & Career", emoji: "💰" },
-  { id: "Growth", label: "Personal Growth", emoji: "📚" },
-  { id: "Fun", label: "Fun & Adventure", emoji: "🎨" },
-  { id: "Contribution", label: "Contribution", emoji: "🌱" },
-] as const;
-
 interface GoalForm {
   title: string;
-  description: string;
-  timeframe: string;
-  life_area: string;
+  why: string;
+  when_target: string;
 }
 
 export function GoalsPage() {
@@ -37,9 +26,9 @@ export function GoalsPage() {
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const [newStepByGoal, setNewStepByGoal] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<GoalForm>({ title: "", description: "", timeframe: "yearly", life_area: "Growth" });
+  const [form, setForm] = useState<GoalForm>({ title: "", why: "", when_target: "" });
   const [saving, setSaving] = useState(false);
-  const [selectedArea, setSelectedArea] = useState<string>("all");
+  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
 
   const load = async () => {
     setLoading(true);
@@ -63,31 +52,26 @@ export function GoalsPage() {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
+      // Store description as JSON or clean text with Why and When
+      const descPayload = JSON.stringify({
+        why: form.why.trim(),
+        when: form.when_target.trim(),
+      });
       await addNewGoal({
-        title: `[${form.life_area}] ${form.title.trim()}`,
-        description: form.description.trim(),
+        title: form.title.trim(),
+        description: descPayload,
         target: 1,
-        timeframe: form.timeframe,
+        timeframe: form.when_target.trim() || "ongoing",
       });
       setError("");
       setOpen(false);
-      setForm({ title: "", description: "", timeframe: "yearly", life_area: "Growth" });
+      setForm({ title: "", why: "", when_target: "" });
       await load();
     } catch {
       setError("Could not create the goal.");
     } finally {
       setSaving(false);
     }
-  };
-
-  const switchTimeframe = async (goal: Goal) => {
-    const next = goal.timeframe === "yearly" ? "monthly" : "yearly";
-    try {
-      await setGoalTimeframe(goal, next);
-    } catch {
-      setError("Could not switch the timeframe.");
-    }
-    load();
   };
 
   const remove = async (id: string) => {
@@ -120,239 +104,239 @@ export function GoalsPage() {
     load();
   };
 
-  const stepRemove = async (id: string) => {
+  const stepDelete = async (id: string) => {
     try {
       await deleteGoalStep(id);
     } catch {
-      setError("Could not remove the step.");
+      setError("Could not delete the step.");
     }
     load();
   };
 
-  const stepsFor = (goalId: string) => steps.filter((s) => s.goal_id === goalId);
-  const activeGoals = goals.filter((g) => !g.done);
-  const filteredGoals = selectedArea === "all" ? activeGoals : activeGoals.filter((g) => g.title.startsWith(`[${selectedArea}]`));
-
-  const renderGoal = (goal: Goal) => {
-    const goalSteps = stepsFor(goal.id);
-    const doneCount = goalSteps.filter((s) => s.done).length;
-    const pct = goalSteps.length > 0 ? Math.round((doneCount / goalSteps.length) * 100) : 0;
-    const isYearly = goal.timeframe === "yearly";
-
-    // Extract area tag if present
-    const areaMatch = goal.title.match(/^\[(.*?)\]\s*(.*)$/);
-    const areaName = areaMatch ? areaMatch[1] : "Growth";
-    const cleanTitle = areaMatch ? areaMatch[2] : goal.title;
-    const areaObj = LIFE_AREAS.find((a) => a.id === areaName);
-
-    return (
-      <div key={goal.id} className="bg-white rounded-2xl border border-cream-200 p-5 hover:shadow-md transition-shadow">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-sage-50 text-sage-700 border border-sage-200">
-                {areaObj?.emoji ?? "🌟"} {areaName}
-              </span>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full",
-                  isYearly ? "bg-cream-100 text-ink-700" : "bg-clay-100 text-clay-700"
-                )}
-              >
-                {isYearly ? <CalendarRange size={10} /> : <CalendarDays size={10} />}
-                {isYearly ? "Yearly" : "Monthly"}
-              </span>
-            </div>
-            <h4 className="font-display text-lg font-semibold text-ink-800">{cleanTitle}</h4>
-            {goal.description && <p className="text-sm text-ink-500 mt-0.5 leading-relaxed">{goal.description}</p>}
-          </div>
-          <div className="flex gap-1 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => switchTimeframe(goal)}
-              aria-label="Switch timeframe"
-            >
-              {isYearly ? "→ Monthly" : "→ Yearly"}
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => remove(goal.id)} aria-label="Delete goal">
-              <Trash2 size={13} />
-            </Button>
-          </div>
-        </div>
-
-        {pct > 0 && (
-          <div className="flex items-center gap-3 mt-4">
-            <div className="flex-1 h-2 rounded-full bg-cream-100 overflow-hidden">
-              <div className="h-full rounded-full bg-sage-500 transition-all duration-500" style={{ width: `${pct}%` }} />
-            </div>
-            <span className="text-xs font-semibold text-ink-600 shrink-0">
-              {doneCount}/{goalSteps.length || 0}
-            </span>
-          </div>
-        )}
-
-        <ul className="mt-4 space-y-2">
-          {goalSteps.map((step) => (
-            <li key={step.id} className="group flex items-center gap-3 bg-cream-50/70 rounded-xl px-3 py-2">
-              <button onClick={() => stepToggle(step)} aria-label="Toggle step done" className="shrink-0">
-                {step.done ? (
-                  <CheckCircle2 size={18} className="text-sage-500" />
-                ) : (
-                  <X size={16} className="text-ink-500/40" />
-                )}
-              </button>
-              <span className={cn("flex-1 text-sm", step.done ? "line-through text-ink-500/70" : "text-ink-800")}>
-                {step.title}
-              </span>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => stepRemove(step.id)}
-                className="opacity-0 group-hover:opacity-100"
-                aria-label="Remove step"
-              >
-                <X size={12} />
-              </Button>
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex gap-2 mt-3">
-          <Input
-            placeholder="Break it into a tiny daily/weekly action..."
-            value={newStepByGoal[goal.id] ?? ""}
-            onChange={(e) => setNewStepByGoal((prev) => ({ ...prev, [goal.id]: e.target.value }))}
-            onKeyDown={(e) => e.key === "Enter" && addStep(goal.id)}
-          />
-          <Button variant="secondary" onClick={() => addStep(goal.id)} disabled={!(newStepByGoal[goal.id] ?? "").trim()}>
-            <Plus size={14} />
-          </Button>
-        </div>
-      </div>
-    );
+  const parseGoalDetails = (goal: Goal) => {
+    try {
+      const parsed = JSON.parse(goal.description);
+      if (parsed && typeof parsed === "object") {
+        return {
+          why: parsed.why || "",
+          when: parsed.when || goal.timeframe || "",
+        };
+      }
+    } catch {
+      // plain text fallback
+    }
+    return {
+      why: goal.description || "",
+      when: goal.timeframe || "",
+    };
   };
+
+  // Strip legacy brackets like [Health] if they existed in older entries
+  const cleanTitle = (raw: string) => {
+    return raw.replace(/^\[[^\]]+\]\s*/, "");
+  };
+
+  const filteredGoals = goals.filter((g) => {
+    if (filter === "completed") return g.done;
+    if (filter === "active") return !g.done;
+    return true;
+  });
 
   return (
     <div className="animate-fade-up">
       <SectionHeader
-        title="Goals &amp; Life Areas"
-        subtitle="Align long-term objectives across Health, Relationships, Money, Growth, Fun &amp; Contribution"
+        title="Goals & Vision"
+        subtitle="Define what you want, why it matters, and when you will achieve it"
         action={
           <Button onClick={() => setOpen(true)}>
-            <Plus size={16} /> New goal
+            <Plus size={16} /> New Goal
           </Button>
         }
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
 
-      {/* Life Area Filters */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button
-          onClick={() => setSelectedArea("all")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-            selectedArea === "all" ? "bg-sage-600 text-white" : "bg-white border border-cream-200 text-ink-600 hover:bg-cream-100"
-          }`}
-        >
-          All Areas
-        </button>
-        {LIFE_AREAS.map((area) => (
+      {/* Filter Tabs */}
+      <div className="flex gap-2 mb-6">
+        {(["all", "active", "completed"] as const).map((tab) => (
           <button
-            key={area.id}
-            onClick={() => setSelectedArea(area.id)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-              selectedArea === area.id ? "bg-sage-600 text-white" : "bg-white border border-cream-200 text-ink-600 hover:bg-cream-100"
+            key={tab}
+            onClick={() => setFilter(tab)}
+            className={`text-xs px-4 py-2 rounded-xl font-medium capitalize transition-all ${
+              filter === tab
+                ? "bg-sage-600 text-white shadow-xs"
+                : "bg-white border border-cream-200 text-ink-600 hover:bg-cream-100"
             }`}
           >
-            <span>{area.emoji}</span> {area.id}
+            {tab}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-40 rounded-2xl bg-cream-100 animate-pulse" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-36 rounded-2xl bg-cream-100 animate-pulse" />
           ))}
         </div>
       ) : filteredGoals.length === 0 ? (
         <EmptyState
-          icon={<Target size={26} />}
-          title="No goals in this area yet"
-          hint="Create a goal, assign it to a life area, and break it into tiny daily or weekly actions."
+          icon={<Target size={26} className="text-sage-600" />}
+          title="No goals found"
+          hint="Write down what you want to achieve. Tap '+ New Goal' to begin."
         />
       ) : (
-        <div className="space-y-6">
-          <div className="space-y-6">{filteredGoals.map(renderGoal)}</div>
+        <div className="space-y-4">
+          {filteredGoals.map((goal) => {
+            const goalSteps = steps.filter((s) => s.goal_id === goal.id);
+            const doneSteps = goalSteps.filter((s) => s.done).length;
+            const progress = goalSteps.length > 0 ? Math.round((doneSteps / goalSteps.length) * 100) : goal.done ? 100 : 0;
+            const details = parseGoalDetails(goal);
+
+            return (
+              <div
+                key={goal.id}
+                className={cn(
+                  "bg-white rounded-2xl border p-5 sm:p-6 transition-all duration-200 hover:shadow-md",
+                  goal.done ? "border-sage-200 bg-sage-50/20" : "border-cream-200"
+                )}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className={cn("font-display text-lg font-semibold text-ink-800", goal.done && "line-through text-ink-400")}>
+                      {cleanTitle(goal.title)}
+                    </h3>
+
+                    {details.why && (
+                      <p className="text-sm text-ink-600 mt-1 flex items-start gap-1.5">
+                        <Heart size={14} className="text-rose-soft-500 shrink-0 mt-0.5" />
+                        <span className="italic">{details.why}</span>
+                      </p>
+                    )}
+
+                    {details.when && (
+                      <p className="text-xs text-sage-700 font-medium mt-1 flex items-center gap-1.5">
+                        <Calendar size={13} className="shrink-0" />
+                        <span>Target: {details.when}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => remove(goal.id)}
+                    className="p-1.5 text-ink-400 hover:text-rose-soft-600 transition-colors shrink-0"
+                    title="Delete goal"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+                {/* Progress bar */}
+                {goalSteps.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs text-ink-500 mb-1.5">
+                      <span>{doneSteps} of {goalSteps.length} milestones complete</span>
+                      <span className="font-semibold text-sage-600">{progress}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-cream-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-sage-500 transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Milestones / Action steps */}
+                <div className="mt-4 pt-3 border-t border-cream-100 space-y-2">
+                  <p className="text-xs font-semibold text-ink-500 uppercase tracking-wider">Milestones & Steps</p>
+                  {goalSteps.map((step) => (
+                    <div key={step.id} className="flex items-center justify-between gap-2 text-sm group/step py-1">
+                      <button
+                        onClick={() => stepToggle(step)}
+                        className="flex items-center gap-2.5 text-left flex-1 min-w-0"
+                      >
+                        {step.done ? (
+                          <CheckCircle2 size={16} className="text-sage-600 shrink-0" />
+                        ) : (
+                          <Circle size={16} className="text-ink-400 shrink-0 hover:text-sage-600" />
+                        )}
+                        <span className={cn("truncate text-ink-800", step.done && "line-through text-ink-400")}>
+                          {step.title}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => stepDelete(step.id)}
+                        className="text-ink-400 hover:text-rose-soft-600 opacity-0 group-hover/step:opacity-100 transition-opacity p-1"
+                        title="Delete milestone"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add milestone inline input */}
+                  <div className="flex gap-2 pt-1">
+                    <Input
+                      placeholder="Add a milestone or next step..."
+                      value={newStepByGoal[goal.id] ?? ""}
+                      onChange={(e) => setNewStepByGoal((prev) => ({ ...prev, [goal.id]: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void addStep(goal.id);
+                      }}
+                      className="text-xs py-1.5"
+                    />
+                    <Button size="sm" variant="secondary" onClick={() => addStep(goal.id)}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <Modal
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          setForm({ title: "", description: "", timeframe: "yearly", life_area: "Growth" });
-        }}
-        title="New goal with soul"
-      >
+      {/* New Goal Modal - Simple, Free-Form, No forced templates */}
+      <Modal open={open} onClose={() => setOpen(false)} title="New Goal">
         <div className="space-y-4">
           <div>
-            <Label>Life Area</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {LIFE_AREAS.map((area) => (
-                <button
-                  key={area.id}
-                  type="button"
-                  onClick={() => setForm({ ...form, life_area: area.id })}
-                  className={cn(
-                    "p-2.5 rounded-xl border text-left text-xs font-medium transition-all flex items-center gap-2",
-                    form.life_area === area.id ? "bg-sage-100 border-sage-500 text-sage-800 ring-1 ring-sage-500" : "bg-white border-cream-200 text-ink-700 hover:bg-cream-100"
-                  )}
-                >
-                  <span className="text-base">{area.emoji}</span>
-                  <span className="truncate">{area.id}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label>Goal Title</Label>
+            <Label>What is your goal?</Label>
             <Input
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g. Build an emergency savings fund"
+              placeholder="e.g. Save KES 100,000 for emergency fund"
+              autoFocus
             />
           </div>
+
           <div>
-            <Label>Timeframe</Label>
-            <div className="flex gap-2">
-              {["monthly", "yearly"].map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => setForm({ ...form, timeframe: tf })}
-                  className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                    form.timeframe === tf ? "bg-sage-600 text-white" : "bg-cream-100 text-ink-600 hover:bg-cream-200"
-                  )}
-                >
-                  {tf === "monthly" ? "Monthly" : "Yearly"}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label>Why it matters &amp; Tiny Actions</Label>
+            <Label>Why do you want to accomplish this?</Label>
             <Textarea
+              value={form.why}
+              onChange={(e) => setForm({ ...form, why: e.target.value })}
+              placeholder="e.g. For financial freedom, peace of mind, and security for my family"
               rows={3}
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="What deeper value does this serve?"
             />
           </div>
-          <Button onClick={add} disabled={saving || !form.title.trim()} className="w-full">
-            {saving ? "Saving..." : "Create goal"}
-          </Button>
+
+          <div>
+            <Label>When do you want to achieve it by?</Label>
+            <Input
+              value={form.when_target}
+              onChange={(e) => setForm({ ...form, when_target: e.target.value })}
+              placeholder="e.g. By end of December 2026 or Next 6 months"
+            />
+          </div>
+
+          <div className="pt-2 flex justify-end gap-2 border-t border-cream-100">
+            <Button variant="secondary" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={add} disabled={saving || !form.title.trim()}>
+              {saving ? "Saving..." : "Create Goal"}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

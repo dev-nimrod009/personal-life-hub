@@ -136,13 +136,21 @@ export function HabitsPage() {
             const identity = parts[1] ?? "";
 
             const streak = (() => {
+              const today = todayISO();
+              const d = new Date();
+              const todayDone = habitLogs.some((l) => l.log_date === today);
+              if (!todayDone) {
+                d.setDate(d.getDate() - 1);
+              }
               let count = 0;
               for (let i = 0; i < 365; i++) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                if (habitLogs.some((l) => l.log_date === iso)) count++;
-                else if (i > 0) break;
+                const cur = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i);
+                const iso = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
+                if (habitLogs.some((l) => l.log_date === iso)) {
+                  count++;
+                } else {
+                  break;
+                }
               }
               return count;
             })();
@@ -193,18 +201,22 @@ export function HabitsPage() {
                   {week.map((date) => {
                     const doneToday = habitLogs.some((l) => l.log_date === date);
                     const isToday = date === todayISO();
+                    const isFuture = date > todayISO();
                     return (
                       <div key={date} className="flex flex-col items-center gap-1">
                       <button
-                        onClick={() => toggle(habit, date)}
+                        onClick={() => !isFuture && toggle(habit, date)}
+                        disabled={isFuture}
                         className={cn(
                           "w-6 h-6 rounded-full border-2 transition-all duration-200 active:scale-90",
                           doneToday ? `${c.bg} ${c.ring} ring-2` : "bg-white border-cream-200 hover:border-ink-500/30",
-                          isToday && "ring-offset-2 ring-offset-white"
+                          isToday && "ring-offset-2 ring-offset-white",
+                          isFuture && "opacity-25 cursor-not-allowed border-dashed hover:border-cream-200"
                         )}
+                        title={isFuture ? "Cannot log future days" : `${doneToday ? "Uncheck" : "Check"} on ${date}`}
                         aria-label={`${doneToday ? "Uncheck" : "Check"} ${habitName} on ${date}`}
                       />
-                      <span className={cn("text-[10px] leading-none", isToday ? "font-semibold text-sage-700" : "text-ink-400")}>
+                      <span className={cn("text-[10px] leading-none", isToday ? "font-semibold text-sage-700" : isFuture ? "text-ink-300" : "text-ink-400")}>
                         {isToday ? "Today" : new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: "narrow" })}
                       </span>
                       </div>

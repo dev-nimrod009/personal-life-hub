@@ -15,13 +15,6 @@ export default defineConfig({
     sourcemap: false,
     minify: false,
     chunkSizeWarningLimit: 2000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          pglite: ["@electric-sql/pglite"],
-        },
-      },
-    },
   },
   plugins: [
     react(),
@@ -87,7 +80,4 @@ export default defineConfig({
       },
     }),
   ],
-  optimizeDeps: {
-    exclude: ["@electric-sql/pglite"],
-  },
 });

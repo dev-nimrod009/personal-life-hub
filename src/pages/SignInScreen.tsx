@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Feather, Fingerprint, Eye, EyeOff, KeyRound } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { Button, Input, Label } from "../components/ui";
 
 export function SignInScreen() {
-  const { signIn, signUp, signInWithPasskey, hasLocalPin, unlockWithLocalPin } = useAuth();
-  const [unlockMode, setUnlockMode] = useState<"pin" | "account">(() => (hasLocalPin ? "pin" : "account"));
+  const { signIn, signUp, signInWithPasskey, hasLocalPin, unlockWithLocalPin, hasPasskey } = useAuth();
+  const [unlockMode, setUnlockMode] = useState<"pin" | "biometric" | "account">(() =>
+    hasPasskey ? "biometric" : hasLocalPin ? "pin" : "account"
+  );
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,6 +17,15 @@ export function SignInScreen() {
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  useEffect(() => {
+    if (hasPasskey && unlockMode === "biometric") {
+      const timer = window.setTimeout(() => {
+        void handleBiometric();
+      }, 350);
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
 
   const submitAccount = async () => {
     setError("");
@@ -64,7 +75,6 @@ export function SignInScreen() {
     const result = await signInWithPasskey();
     setBusy(false);
     if (result.error) {
-      // Fallback message encouraging PIN entry
       setError(result.error);
       if (hasLocalPin) {
         setUnlockMode("pin");
@@ -85,8 +95,41 @@ export function SignInScreen() {
           </p>
         </div>
 
-        {/* PIN Unlock Mode */}
-        {unlockMode === "pin" && hasLocalPin ? (
+        {/* Biometric Unlock Mode */}
+        {unlockMode === "biometric" && hasPasskey ? (
+          <div className="space-y-5 animate-fade-up text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sage-100 text-sage-600 mb-2">
+              <Fingerprint size={28} className="animate-pulse" />
+            </div>
+            <div>
+              <h2 className="font-display text-lg font-semibold text-ink-800">Biometric Unlock</h2>
+              <p className="text-xs text-ink-500 mt-1">Scan fingerprint or Face ID to unlock</p>
+            </div>
+
+            {error && <div className="rounded-xl bg-rose-soft-100 text-rose-soft-600 text-xs px-3 py-2.5 text-left">{error}</div>}
+
+            <Button className="w-full" onClick={() => void handleBiometric()} disabled={busy}>
+              <Fingerprint size={16} /> {busy ? "Verifying..." : "Scan Biometrics"}
+            </Button>
+
+            {hasLocalPin && (
+              <Button variant="secondary" className="w-full" onClick={() => { setError(""); setUnlockMode("pin"); }}>
+                <KeyRound size={16} /> Use PIN instead
+              </Button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setUnlockMode("account");
+              }}
+              className="w-full text-center text-xs text-ink-600 hover:text-sage-700 font-medium py-1 transition-colors"
+            >
+              Sign in with email and password instead
+            </button>
+          </div>
+        ) : unlockMode === "pin" && hasLocalPin ? (
           <div className="space-y-5 animate-fade-up">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-sage-100 text-sage-600 mb-2">

@@ -49,6 +49,10 @@ export function DayPlansPage() {
   };
 
   const toggle = async (task: DayPlanTask) => {
+    if (task.plan_date > today && !task.done) {
+      setError("Tasks scheduled for future days can only be marked completed on or after that day.");
+      return;
+    }
     try {
       await setDayPlannerDone(task.id, !task.done);
     } catch {

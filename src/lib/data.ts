@@ -29,12 +29,28 @@ type Row = Record<string, unknown>;
 
 // ---------- offline storage ----------
 
-const QUEUE_KEY = "lifehub:sync-queue";
-const cacheKey = (table: string) => `lifehub:cache:${table}`;
+let currentUserId = "guest";
+
+export function getActiveUserId(): string {
+  return currentUserId;
+}
+
+const queueKey = () => `lifehub:sync-queue:${currentUserId || "default"}`;
+const cacheKey = (table: string) => `lifehub:cache:${currentUserId || "default"}:${table}`;
 
 function readLocal(table: string): Row[] {
   try {
-    const parsed: unknown = JSON.parse(localGet(cacheKey(table)) ?? "[]");
+    const key = cacheKey(table);
+    let raw = localGet(key);
+    // Migrate legacy unscoped cache if not guest
+    if (!raw && currentUserId && !currentUserId.includes("guest")) {
+      const legacy = localGet(`lifehub:cache:${table}`);
+      if (legacy) {
+        raw = legacy;
+        localSet(key, legacy);
+      }
+    }
+    const parsed: unknown = JSON.parse(raw ?? "[]");
     return Array.isArray(parsed)
       ? parsed.filter((row): row is Row => typeof row === "object" && row !== null && !Array.isArray(row))
       : [];
@@ -61,7 +77,7 @@ interface SyncItem {
 
 function readQueue(): SyncItem[] {
   try {
-    const parsed: unknown = JSON.parse(localGet(QUEUE_KEY) ?? "[]");
+    const parsed: unknown = JSON.parse(localGet(queueKey()) ?? "[]");
     return Array.isArray(parsed)
       ? parsed.filter(
           (item): item is SyncItem =>
@@ -83,7 +99,7 @@ function readQueue(): SyncItem[] {
 
 function writeQueue(items: SyncItem[]): void {
   try {
-    localSet(QUEUE_KEY, JSON.stringify(items));
+    localSet(queueKey(), JSON.stringify(items));
   } catch {
     // nothing we can do, keep the in-memory state consistent
   }
@@ -218,20 +234,9 @@ if (typeof window !== "undefined") {
 
 // ---------- offline-aware reads ----------
 
-const CACHE_OWNER_KEY = "lifehub:cache-owner";
-
-/** Drops cached rows and queued writes left by a different signed-in account on this device. */
+/** Sets active user for device storage isolation. */
 export function bindLocalCacheToUser(userId: string): void {
-  // Local-only ids are minted per sign-in and represent the same device owner.
-  if (userId.startsWith("local-")) return;
-  const owner = localGet(CACHE_OWNER_KEY);
-  if (owner === userId) return;
-  if (owner) {
-    for (const key of localKeys()) {
-      if (key.startsWith("lifehub:cache:") || key === QUEUE_KEY) localRemove(key);
-    }
-  }
-  localSet(CACHE_OWNER_KEY, userId);
+  currentUserId = userId || "guest";
 }
 
 export async function fetchAllRows(table: string): Promise<Row[]> {
@@ -297,11 +302,25 @@ function byDateDesc(a: Row, b: Row): number {
 
 // ---------- profile ----------
 
+const profileKey = (userId: string) => `lifehub:profile:${userId}`;
+
 export async function getProfile(userId: string, email?: string): Promise<Profile | null> {
+  // Check fast user-specific persistent profile first
+  try {
+    const raw = localGet(profileKey(userId));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && parsed.id === userId) {
+        return parsed as Profile;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
   const rows = await fetchAll("profiles");
   let own = rows.find((r) => r.id === userId);
   if (!own && userId.startsWith("local-") && email) {
-    // Older offline sign-ins minted a new id each time; carry the latest profile for this email forward.
     const previous = rows
       .filter((r) => String(r.email ?? "").toLowerCase() === email.toLowerCase())
       .sort((a, b) => String(b.updated_at ?? "").localeCompare(String(a.updated_at ?? "")))[0];
@@ -311,7 +330,7 @@ export async function getProfile(userId: string, email?: string): Promise<Profil
     }
   }
   if (own) {
-    return {
+    const p: Profile = {
       id: userId,
       email: String(own.email ?? ""),
       full_name: String(own.full_name ?? ""),
@@ -322,11 +341,13 @@ export async function getProfile(userId: string, email?: string): Promise<Profil
       created_at: String(own.created_at ?? new Date().toISOString()),
       updated_at: String(own.updated_at ?? new Date().toISOString()),
     };
+    localSet(profileKey(userId), JSON.stringify(p));
+    return p;
   }
-  const profileEmail = email ?? (await supabase.auth.getUser()).data.user?.email;
+  const profileEmail = email ?? (await supabase.auth.getUser().catch(() => null))?.data.user?.email;
   if (!profileEmail) return null;
   const now = new Date().toISOString();
-  const row = {
+  const row: Profile = {
     id: userId,
     email: profileEmail,
     full_name: "",
@@ -337,17 +358,49 @@ export async function getProfile(userId: string, email?: string): Promise<Profil
     created_at: now,
     updated_at: now,
   };
-  await remoteOrQueue({ table: "profiles", kind: "insert", row });
-  return row as Profile;
+  await remoteOrQueue({ table: "profiles", kind: "insert", row: row as unknown as Row });
+  localSet(profileKey(userId), JSON.stringify(row));
+  return row;
 }
 
 export async function updateProfile(userId: string, changes: Partial<Profile>): Promise<void> {
+  const current = await getProfile(userId);
+  const updated: Profile = {
+    ...(current ?? {
+      id: userId,
+      email: "",
+      full_name: "",
+      avatar_url: "",
+      bio: "",
+      location: "",
+      birthday: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }),
+    ...changes,
+    updated_at: new Date().toISOString(),
+  };
+  localSet(profileKey(userId), JSON.stringify(updated));
+
   await remoteOrQueue({
     table: "profiles",
     kind: "update",
     row: { id: userId },
     changes: { ...changes, updated_at: new Date().toISOString() },
   });
+}
+
+// ---------- weekly meal budget ----------
+
+export function getMealBudget(userId?: string): number {
+  const uid = userId || currentUserId || "default";
+  const val = Number(localGet(`lifehub:meal-budget:${uid}`));
+  return Number.isFinite(val) && val > 0 ? val : 3500;
+}
+
+export function setMealBudget(budget: number, userId?: string): void {
+  const uid = userId || currentUserId || "default";
+  localSet(`lifehub:meal-budget:${uid}`, String(budget));
 }
 
 // ---------- journal ----------
@@ -359,12 +412,13 @@ export async function listJournal(): Promise<JournalEntry[]> {
     .map((r) => r as unknown as JournalEntry);
 }
 
-export async function upsertJournal(entry: { id?: string; title: string; content: string; mood: string }): Promise<void> {
+export async function upsertJournal(entry: { id?: string; title: string; content: string; mood: string }): Promise<string> {
+  const id = entry.id || uid();
   if (entry.id) {
     await remoteOrQueue({
       table: "journal_entries",
       kind: "update",
-      row: { id: entry.id },
+      row: { id },
       changes: {
         title: entry.title,
         content: entry.content,
@@ -377,7 +431,7 @@ export async function upsertJournal(entry: { id?: string; title: string; content
       table: "journal_entries",
       kind: "insert",
       row: {
-        id: uid(),
+        id,
         title: entry.title,
         content: entry.content,
         mood: entry.mood,
@@ -386,6 +440,7 @@ export async function upsertJournal(entry: { id?: string; title: string; content
       },
     });
   }
+  return id;
 }
 
 export async function deleteJournal(id: string): Promise<void> {
@@ -405,19 +460,21 @@ export async function getDiaryByDate(date: string): Promise<DiaryEntry | null> {
   return row ? (row as unknown as DiaryEntry) : null;
 }
 
-export async function upsertDiary(date: string, content: string, existingId?: string | null): Promise<void> {
+export async function upsertDiary(date: string, content: string, existingId?: string | null): Promise<string> {
   const rows = await fetchAll("diary_entries");
   const row = existingId ? rows.find((r) => r.id === existingId) : rows.find((r) => r.entry_date === date);
+  const id: string = (typeof row?.id === "string" ? row.id : undefined) || existingId || uid();
   if (row) {
     await remoteOrQueue({
       table: "diary_entries",
       kind: "update",
-      row: { id: row.id },
+      row: { id },
       changes: { entry_date: date, content, updated_at: new Date().toISOString() },
     });
   } else {
-    await remoteOrQueue({ table: "diary_entries", kind: "insert", row: { id: uid(), entry_date: date, content } });
+    await remoteOrQueue({ table: "diary_entries", kind: "insert", row: { id, entry_date: date, content } });
   }
+  return id;
 }
 
 export async function deleteDiary(id: string): Promise<void> {
@@ -440,7 +497,8 @@ export async function upsertNote(entry: {
   category?: string;
   password_hash?: string;
   pinned?: boolean;
-}): Promise<void> {
+}): Promise<string> {
+  const id = entry.id || uid();
   const changes: Record<string, unknown> = {
     title: entry.title,
     content: entry.content,
@@ -453,12 +511,13 @@ export async function upsertNote(entry: {
     await remoteOrQueue({
       table: "notes",
       kind: "update",
-      row: { id: entry.id },
+      row: { id },
       changes,
     });
   } else {
-    await remoteOrQueue({ table: "notes", kind: "insert", row: { id: uid(), ...changes } });
+    await remoteOrQueue({ table: "notes", kind: "insert", row: { id, ...changes } });
   }
+  return id;
 }
 
 export async function setNotePinned(id: string, pinned: boolean): Promise<void> {

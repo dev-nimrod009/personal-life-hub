@@ -221,22 +221,9 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {isSupabaseConfigured && apiOnline === false && (
-            <div
-              className={`sm:col-span-2 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${
-                sync.pending > 0 ? "bg-honey-500/15 text-amber-700" : "bg-cream-100 text-ink-500"
-              }`}
-            >
-              {sync.pending > 0 ? (
-                <>
-                  <RefreshCw size={15} /> Offline — {sync.pending} pending item
-                  {sync.pending === 1 ? "" : "s"} will sync when internet returns
-                </>
-              ) : (
-                <>
-                  <CloudOff size={15} /> Offline — entries are saved on this phone and will sync automatically
-                </>
-              )}
+          {typeof navigator !== "undefined" && !navigator.onLine && (
+            <div className="sm:col-span-2 flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-medium bg-cream-200/80 text-ink-600">
+              <CloudOff size={15} /> Device is offline — changes are saved locally
             </div>
           )}
 
@@ -354,29 +341,20 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
             hidden={modules.meals === false}
             className="sm:col-span-2 bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200"
           >
-            <div className="flex items-center justify-between mb-3.5">
-              <div
-                className="flex items-center gap-2 text-ink-500 cursor-pointer"
-                onClick={() => onNavigate("meals")}
-              >
+            <div
+              className="flex items-center justify-between mb-3.5 cursor-pointer"
+              onClick={() => onNavigate("meals")}
+            >
+              <div className="flex items-center gap-2 text-ink-500">
                 <UtensilsCrossed size={16} className="text-sage-600" />
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-ink-700">Today's Meals</h3>
                 {todayMeals.length > 0 && (
                   <span className="text-[11px] font-medium text-sage-600 bg-sage-50 px-2 py-0.5 rounded-full border border-sage-200">
-                    {todayMeals.filter(isMealEaten).length}/{todayMeals.length} eaten
+                    {todayMeals.length} planned
                   </span>
                 )}
               </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setMealForm({ meal_type: "Lunch", name: "", notes: "", cost: "" });
-                  setMealModalOpen(true);
-                }}
-              >
-                <Plus size={14} /> Add meal
-              </Button>
+              <span className="text-xs text-sage-600 font-medium hover:underline">Open Planner →</span>
             </div>
 
             {todayMeals.length === 0 ? (
@@ -384,52 +362,25 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
                 className="rounded-xl bg-cream-50/70 border border-cream-100 p-4 text-center cursor-pointer hover:bg-cream-100/60 transition-colors"
                 onClick={() => onNavigate("meals")}
               >
-                <p className="text-sm text-ink-600">No meals planned for today yet.</p>
-                <p className="text-xs text-ink-500 mt-1">Tap "+ Add meal" above or open the Meal Planner.</p>
+                <p className="text-sm text-ink-600">No meals planned for today.</p>
+                <p className="text-xs text-ink-500 mt-1">Tap to schedule your week in the Meal Planner.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {todayMeals.map((meal) => {
-                  const eaten = isMealEaten(meal);
-                  const emoji = MEAL_EMOJI[meal.meal_type] || "🍽️";
-                  return (
-                    <div
-                      key={meal.id}
-                      className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all ${
-                        eaten
-                          ? "bg-sage-50/60 border-sage-200 text-ink-600"
-                          : "bg-cream-50/50 border-cream-200 text-ink-800"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-lg shrink-0">{emoji}</span>
-                        <div className="min-w-0">
-                          <p className={`text-sm font-semibold truncate ${eaten ? "line-through text-ink-500" : ""}`}>
-                            {meal.name}
-                          </p>
-                          <p className="text-[11px] text-ink-500 truncate">
-                            {meal.meal_type}
-                            {meal.cost ? ` · KES ${meal.cost.toLocaleString()}` : ""}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => void toggleMealEaten(meal)}
-                        className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 shrink-0 ${
-                          eaten
-                            ? "bg-sage-600 text-white shadow-xs"
-                            : "bg-white text-ink-700 border border-cream-200 hover:border-sage-300 hover:bg-sage-50"
-                        }`}
-                        title={eaten ? "Mark as not eaten" : "Log as eaten"}
-                      >
-                        <Check size={12} className={eaten ? "text-white" : "text-ink-400"} />
-                        {eaten ? "Eaten" : "Log eaten"}
-                      </button>
-                    </div>
-                  );
-                })}
+                {todayMeals.map((meal) => (
+                  <div
+                    key={meal.id}
+                    onClick={() => onNavigate("meals")}
+                    className="p-3 rounded-xl border border-cream-200 bg-cream-50/50 hover:bg-cream-100/50 transition-colors cursor-pointer"
+                  >
+                    <p className="text-sm font-semibold truncate text-ink-800">{meal.name}</p>
+                    <p className="text-xs text-ink-500 truncate mt-0.5">
+                      {meal.meal_type}
+                      {meal.cost ? ` · KES ${meal.cost.toLocaleString()}` : ""}
+                      {meal.notes ? ` · ${meal.notes}` : ""}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </section>

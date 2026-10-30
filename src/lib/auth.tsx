@@ -36,7 +36,10 @@ function idleTimeoutMs(): number {
 }
 
 function isLocked(): boolean {
-  return getStoredValue(LOCKED_KEY) === "1" && Boolean(getStoredValue(PIN_KEY));
+  return (
+    getStoredValue(LOCKED_KEY) === "1" &&
+    (Boolean(getStoredValue(PIN_KEY)) || Boolean(getStoredValue(PASSKEY_FLAG)))
+  );
 }
 
 // Offline accounts keep one id per email so their data and profile survive signing in again.
@@ -87,6 +90,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasLocalPin, setHasLocalPin] = useState(() => getStoredValue(PIN_KEY) !== null);
 
   useEffect(() => {
+    // Check if previous activity exceeded inactivity timeout on boot
+    const lastActivity = Number(getStoredValue(LAST_ACTIVITY_KEY));
+    const hasSecuredAuth = Boolean(getStoredValue(PIN_KEY)) || Boolean(getStoredValue(PASSKEY_FLAG));
+    const expired = lastActivity > 0 && Date.now() - lastActivity >= idleTimeoutMs();
+
+    if (expired) {
+      if (hasSecuredAuth) {
+        setStoredValue(LOCKED_KEY, "1");
+      } else {
+        removeStoredValue(OFFLINE_USER_KEY);
+      }
+    }
+
     const restoreOfflineAccess = async () => {
       const cachedUser = readOfflineUser();
       if (!cachedUser || (await checkBackendConnectivity())) return false;
@@ -99,19 +115,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void supabase.auth.getSession().then(async ({ data }) => {
       if (data.session && isLocked()) {
         lockedSessionRef.current = data.session;
-      } else if (data.session) {
+      } else if (data.session && !expired) {
         setSession(data.session);
         setUser(data.session.user);
         setStoredValue(
           OFFLINE_USER_KEY,
           JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
         );
-      } else if (!isLocked()) {
+      } else if (!isLocked() && !expired) {
         await restoreOfflineAccess();
       }
       setLoading(false);
     }).catch(async () => {
-      if (!isLocked()) await restoreOfflineAccess();
+      if (!isLocked() && !expired) await restoreOfflineAccess();
       setLoading(false);
     });
 
@@ -145,8 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const signOutForInactivity = () => {
       removeStoredValue(LAST_ACTIVITY_KEY);
-      if (getStoredValue(PIN_KEY)) {
-        // Lock instead of signing out when a PIN is configured; the session is kept for PIN/biometric unlock
+      const hasSecurity = Boolean(getStoredValue(PIN_KEY)) || Boolean(getStoredValue(PASSKEY_FLAG));
+      if (hasSecurity) {
+        // Lock instead of signing out when PIN or Passkey is configured
         lockedSessionRef.current = session;
         setStoredValue(LOCKED_KEY, "1");
         setOfflineAccess(false);
@@ -156,6 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       removeStoredValue(OFFLINE_USER_KEY);
       setOfflineAccess(false);
+      setSession(null);
+      setUser(null);
       void supabase.auth.signOut({ scope: "local" });
     };
 
@@ -170,18 +189,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const recordActivity = () => {
       const now = Date.now();
-      if (now - lastActivityRef.current >= 60_000) {
-        lastActivityRef.current = now;
-        setStoredValue(LAST_ACTIVITY_KEY, String(now));
+      const last = Number(getStoredValue(LAST_ACTIVITY_KEY)) || lastActivityRef.current;
+      if (last > 0 && now - last >= idleTimeoutMs()) {
+        signOutForInactivity();
+        return;
       }
+      lastActivityRef.current = now;
+      setStoredValue(LAST_ACTIVITY_KEY, String(now));
       window.clearTimeout(timer);
       checkIdle();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const now = Date.now();
+        const last = Number(getStoredValue(LAST_ACTIVITY_KEY)) || lastActivityRef.current;
+        if (last > 0 && now - last >= idleTimeoutMs()) {
+          signOutForInactivity();
+          return;
+        }
+        lastActivityRef.current = now;
+        setStoredValue(LAST_ACTIVITY_KEY, String(now));
+        window.clearTimeout(timer);
+        checkIdle();
+      }
     };
 
     let timer: number;
     const previousActivity = Number(getStoredValue(LAST_ACTIVITY_KEY));
     lastActivityRef.current = previousActivity || Date.now();
-    if (Date.now() - lastActivityRef.current >= idleTimeoutMs()) {
+    if (previousActivity > 0 && Date.now() - previousActivity >= idleTimeoutMs()) {
       signOutForInactivity();
       return;
     }
@@ -191,13 +228,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener("pointerdown", recordActivity);
     window.addEventListener("keydown", recordActivity);
     window.addEventListener("touchstart", recordActivity);
-    document.addEventListener("visibilitychange", recordActivity);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       window.clearTimeout(timer);
       window.removeEventListener("pointerdown", recordActivity);
       window.removeEventListener("keydown", recordActivity);
       window.removeEventListener("touchstart", recordActivity);
-      document.removeEventListener("visibilitychange", recordActivity);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [session, offlineAccess]);
 

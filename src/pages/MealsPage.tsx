@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Utensils,
   Plus,
@@ -7,10 +7,13 @@ import {
   ShoppingBag,
   Package,
   Calendar,
-  CheckCircle2,
-  Circle,
-  Clock,
-  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
+  Wallet,
+  Pencil,
 } from "lucide-react";
 import {
   listMeals,
@@ -24,20 +27,39 @@ import {
   deleteMealLibraryItem,
   listPantry,
   addPantryItem,
-  setPantryNeedToBuy,
   deletePantryItem,
   listShopping,
   addShoppingItem,
-  setShoppingBought,
   deleteShoppingItem,
+  getMealBudget,
+  setMealBudget,
 } from "../lib/data";
 import type { Meal, Recipe, MealLibraryItem, PantryItem, ShoppingItem } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
-import { todayISO, formatDay } from "../lib/utils";
+import { todayISO, formatDay, cn } from "../lib/utils";
 
 export type MealTab = "week" | "library" | "recipes" | "pantry" | "shopping";
 
 const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
+
+function getMondayOfDate(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.getFullYear(), date.getMonth(), diff);
+}
+
+function getWeekDays(monday: Date): { dateStr: string; dayName: string; formatted: string }[] {
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const cur = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    const dateStr = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
+    const dayName = cur.toLocaleDateString(undefined, { weekday: "long" });
+    const formatted = cur.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    days.push({ dateStr, dayName, formatted });
+  }
+  return days;
+}
 
 export function MealsPage({
   activeTab = "week",
@@ -54,11 +76,17 @@ export function MealsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Week navigation state
+  const [currentMonday, setCurrentMonday] = useState(() => getMondayOfDate(new Date()));
+  const [weeklyBudget, setWeeklyBudgetState] = useState(() => getMealBudget());
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [budgetInput, setBudgetInput] = useState(String(getMealBudget()));
+
   // Modals state
   const [mealModal, setMealModal] = useState(false);
   const [newMeal, setNewMeal] = useState({
     meal_date: todayISO(),
-    meal_type: "Lunch",
+    meal_type: "Lunch" as (typeof MEAL_TYPES)[number],
     name: "",
     notes: "",
     cost: "",
@@ -76,9 +104,8 @@ export function MealsPage({
   const [newLibItem, setNewLibItem] = useState({
     name: "",
     meal_type: "Dinner",
-    emoji: "🥗",
     notes: "",
-    default_cost: 0,
+    default_cost: "",
   });
 
   const [pantryModal, setPantryModal] = useState(false);
@@ -93,7 +120,7 @@ export function MealsPage({
   const [newShopping, setNewShopping] = useState({
     name: "",
     quantity: "1",
-    est_cost: 0,
+    est_cost: "",
   });
 
   const loadAll = async () => {
@@ -110,6 +137,7 @@ export function MealsPage({
       setLibrary(lib);
       setPantry(p);
       setShopping(s);
+      setWeeklyBudgetState(getMealBudget());
       setError("");
     } catch {
       setError("Could not load meal data from device.");
@@ -122,7 +150,40 @@ export function MealsPage({
     loadAll();
   }, []);
 
-  // Handlers
+  const weekDays = useMemo(() => getWeekDays(currentMonday), [currentMonday]);
+  const weekStartStr = weekDays[0].dateStr;
+  const weekEndStr = weekDays[6].dateStr;
+
+  const currentWeekMeals = useMemo(() => {
+    return meals.filter((m) => m.meal_date >= weekStartStr && m.meal_date <= weekEndStr);
+  }, [meals, weekStartStr, weekEndStr]);
+
+  const totalWeekSpent = useMemo(() => {
+    return currentWeekMeals.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
+  }, [currentWeekMeals]);
+
+  const budgetDifference = weeklyBudget - totalWeekSpent;
+  const isOverBudget = totalWeekSpent > weeklyBudget;
+
+  const shiftWeek = (delta: number) => {
+    const next = new Date(currentMonday);
+    next.setDate(next.getDate() + delta * 7);
+    setCurrentMonday(next);
+  };
+
+  const jumpToCurrentWeek = () => {
+    setCurrentMonday(getMondayOfDate(new Date()));
+  };
+
+  const handleSaveBudget = () => {
+    const val = Number(budgetInput);
+    if (Number.isFinite(val) && val >= 0) {
+      setMealBudget(val);
+      setWeeklyBudgetState(val);
+      setBudgetModalOpen(false);
+    }
+  };
+
   const handleAddMeal = async () => {
     if (!newMeal.name.trim()) return;
     try {
@@ -164,12 +225,12 @@ export function MealsPage({
       await addMealLibraryItem({
         name: newLibItem.name.trim(),
         meal_type: newLibItem.meal_type,
-        emoji: newLibItem.emoji || "🍽️",
+        emoji: "🍽️",
         notes: newLibItem.notes.trim(),
         default_cost: Number(newLibItem.default_cost) || 0,
       });
       setLibraryModal(false);
-      setNewLibItem({ name: "", meal_type: "Dinner", emoji: "🥗", notes: "", default_cost: 0 });
+      setNewLibItem({ name: "", meal_type: "Dinner", notes: "", default_cost: "" });
       await loadAll();
     } catch {
       setError("Failed to add library item.");
@@ -202,16 +263,16 @@ export function MealsPage({
         est_cost: Number(newShopping.est_cost) || 0,
       });
       setShoppingModal(false);
-      setNewShopping({ name: "", quantity: "1", est_cost: 0 });
+      setNewShopping({ name: "", quantity: "1", est_cost: "" });
       await loadAll();
     } catch {
       setError("Failed to add shopping item.");
     }
   };
 
-  const tabs: { id: MealTab; label: string; icon: typeof Utensils }[] = [
-    { id: "week", label: "Planner", icon: Calendar },
-    { id: "library", label: "Library", icon: Sparkles },
+  const tabs: { id: MealTab; label: string; icon: typeof Calendar }[] = [
+    { id: "week", label: "Weekly Planner", icon: Calendar },
+    { id: "library", label: "Meal Library", icon: Utensils },
     { id: "recipes", label: "Recipes", icon: BookOpen },
     { id: "pantry", label: "Pantry", icon: Package },
     { id: "shopping", label: "Shopping", icon: ShoppingBag },
@@ -221,10 +282,15 @@ export function MealsPage({
     <div className="animate-fade-up">
       <SectionHeader
         title="Meal Planner"
-        subtitle="Organize meals, recipes, pantry staples, and groceries"
+        subtitle="Schedule your week, track food spending in KES, and stay within budget"
         action={
           activeTab === "week" ? (
-            <Button onClick={() => setMealModal(true)}>
+            <Button
+              onClick={() => {
+                setNewMeal({ meal_date: todayISO(), meal_type: "Lunch", name: "", notes: "", cost: "" });
+                setMealModal(true);
+              }}
+            >
               <Plus size={16} /> Plan Meal
             </Button>
           ) : activeTab === "library" ? (
@@ -241,7 +307,7 @@ export function MealsPage({
             </Button>
           ) : (
             <Button onClick={() => setShoppingModal(true)}>
-              <Plus size={16} /> Add Item
+              <Plus size={16} /> Add Grocery Item
             </Button>
           )
         }
@@ -272,242 +338,381 @@ export function MealsPage({
       </div>
 
       {loading ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 rounded-2xl bg-cream-100 animate-pulse" />
+            <div key={i} className="h-28 rounded-2xl bg-cream-100 animate-pulse" />
           ))}
         </div>
       ) : activeTab === "week" ? (
-        /* Planner Tab */
-        meals.length === 0 ? (
-          <EmptyState
-            icon={<Utensils size={26} className="text-sage-600" />}
-            title="No planned meals"
-            hint="Plan your breakfast, lunch, or dinner for the week."
-          />
-        ) : (
-          <div className="space-y-4">
-            {meals.map((meal) => (
-              <div
-                key={meal.id}
-                className="bg-white rounded-2xl border border-cream-200 p-5 flex items-start justify-between gap-4 hover:shadow-sm transition-shadow"
-              >
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sage-50 text-sage-700">
-                      {meal.meal_type}
-                    </span>
-                    <span className="text-xs text-ink-500">{formatDay(meal.meal_date)}</span>
-                  </div>
-                  <h4 className="font-display font-semibold text-ink-800 text-base">{meal.name}</h4>
-                  {meal.notes && <p className="text-xs text-ink-600 mt-1">{meal.notes}</p>}
+        /* Weekly Planner View */
+        <div className="space-y-6">
+          {/* Week Budget & Spending Overview Card */}
+          <section className="bg-white rounded-2xl border border-cream-200 p-5 sm:p-6 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-cream-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sage-100 text-sage-600 flex items-center justify-center shrink-0">
+                  <Wallet size={20} />
                 </div>
-                <div className="flex items-center gap-3">
-                  {meal.cost !== null && meal.cost !== undefined && (
-                    <span className="text-sm font-semibold text-ink-700 font-mono">${Number(meal.cost).toFixed(2)}</span>
-                  )}
-                  <button
-                    onClick={() => {
-                      void deleteMeal(meal.id);
-                      void loadAll();
-                    }}
-                    className="p-1.5 text-ink-400 hover:text-rose-soft-600 rounded-lg hover:bg-rose-soft-100 transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                <div>
+                  <h3 className="font-display font-semibold text-lg text-ink-800">Weekly Food Budget</h3>
+                  <p className="text-xs text-ink-500">Compare planned weekly meals against your budget</p>
                 </div>
               </div>
-            ))}
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setBudgetInput(String(weeklyBudget));
+                    setBudgetModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 text-xs"
+                >
+                  <Pencil size={13} /> Set Budget
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+              <div className="rounded-xl bg-cream-50/70 p-3.5 border border-cream-100">
+                <p className="text-xs text-ink-500 font-medium">Weekly Target Budget</p>
+                <p className="font-display text-xl font-bold text-ink-800 mt-0.5">
+                  KES {weeklyBudget.toLocaleString()}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-cream-50/70 p-3.5 border border-cream-100">
+                <p className="text-xs text-ink-500 font-medium">Total Planned Food Spent</p>
+                <p className={cn("font-display text-xl font-bold mt-0.5", isOverBudget ? "text-rose-soft-600" : "text-sage-700")}>
+                  KES {totalWeekSpent.toLocaleString()}
+                </p>
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-xl p-3.5 border flex items-center gap-3",
+                  isOverBudget
+                    ? "bg-rose-soft-100/50 border-rose-soft-200 text-rose-soft-700"
+                    : "bg-sage-50 border-sage-200 text-sage-700"
+                )}
+              >
+                {isOverBudget ? (
+                  <AlertCircle size={24} className="text-rose-soft-600 shrink-0" />
+                ) : (
+                  <CheckCircle size={24} className="text-sage-600 shrink-0" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider">
+                    {isOverBudget ? "Over Budget" : "Within Budget"}
+                  </p>
+                  <p className="text-xs mt-0.5 font-medium">
+                    {isOverBudget
+                      ? `Exceeded by KES ${Math.abs(budgetDifference).toLocaleString()}`
+                      : `KES ${budgetDifference.toLocaleString()} remaining`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Week Selector Bar */}
+          <div className="flex items-center justify-between bg-white border border-cream-200 rounded-2xl px-4 py-3 shadow-xs">
+            <button
+              onClick={() => shiftWeek(-1)}
+              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
+              aria-label="Previous week"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            <div className="text-center">
+              <p className="font-display text-base sm:text-lg font-semibold text-ink-800">
+                {weekDays[0].formatted} – {weekDays[6].formatted}
+              </p>
+              <button
+                onClick={jumpToCurrentWeek}
+                className="text-[11px] text-sage-600 hover:underline font-medium mt-0.5"
+              >
+                Jump to Current Week
+              </button>
+            </div>
+
+            <button
+              onClick={() => shiftWeek(1)}
+              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
+              aria-label="Next week"
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
-        )
+
+          {/* 7-Day Planner Grid */}
+          <div className="space-y-4">
+            {weekDays.map(({ dateStr, dayName, formatted }) => {
+              const dayMeals = currentWeekMeals.filter((m) => m.meal_date === dateStr);
+              const dayTotal = dayMeals.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
+              const isToday = dateStr === todayISO();
+
+              return (
+                <div
+                  key={dateStr}
+                  className={cn(
+                    "bg-white rounded-2xl border p-4 sm:p-5 transition-all",
+                    isToday ? "border-sage-300 ring-1 ring-sage-200" : "border-cream-200"
+                  )}
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-cream-100 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display font-semibold text-ink-800 text-base">
+                        {dayName}
+                      </span>
+                      <span className="text-xs text-ink-400">· {formatted}</span>
+                      {isToday && (
+                        <span className="text-[11px] font-medium text-sage-700 bg-sage-50 px-2 py-0.5 rounded-full border border-sage-200">
+                          Today
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-ink-600">
+                        Day Total: KES {dayTotal.toLocaleString()}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setNewMeal({ meal_date: dateStr, meal_type: "Lunch", name: "", notes: "", cost: "" });
+                          setMealModal(true);
+                        }}
+                        className="text-xs px-2.5 py-1 h-auto"
+                      >
+                        <Plus size={12} /> Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  {dayMeals.length === 0 ? (
+                    <p className="text-xs text-ink-400 py-1 italic">No meals scheduled for this day.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {dayMeals.map((meal) => (
+                        <div
+                          key={meal.id}
+                          className="p-3 rounded-xl border border-cream-200 bg-cream-50/40 flex items-start justify-between gap-2 group"
+                        >
+                          <div className="min-w-0">
+                            <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sage-100 text-sage-700 mb-1">
+                              {meal.meal_type}
+                            </span>
+                            <p className="text-sm font-semibold text-ink-800 truncate">{meal.name}</p>
+                            {meal.notes && (
+                              <p className="text-xs text-ink-500 truncate mt-0.5">{meal.notes}</p>
+                            )}
+                            <p className="text-xs font-bold text-ink-700 mt-1">
+                              KES {(Number(meal.cost) || 0).toLocaleString()}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await deleteMeal(meal.id);
+                                await loadAll();
+                              } catch {
+                                setError("Could not delete meal.");
+                              }
+                            }}
+                            className="p-1 text-ink-400 hover:text-rose-soft-600 opacity-60 hover:opacity-100 transition-opacity"
+                            title="Delete meal"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ) : activeTab === "library" ? (
         /* Library Tab */
-        library.length === 0 ? (
-          <EmptyState
-            icon={<Sparkles size={26} className="text-sage-600" />}
-            title="Meal library is empty"
-            hint="Save go-to recipes, takeout favorites, and easy dinner ideas."
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {library.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl border border-cream-200 p-5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">{item.emoji || "🍽️"}</span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-cream-100 text-ink-600 font-medium">
+        <div className="space-y-4">
+          {library.length === 0 ? (
+            <EmptyState
+              icon={<Utensils size={26} className="text-sage-600" />}
+              title="No library items"
+              hint="Save your favorite go-to meals here to quickly schedule them into your week."
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {library.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl border border-cream-200 p-4 flex items-start justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-cream-100 text-ink-600">
                       {item.meal_type}
                     </span>
+                    <p className="text-sm font-semibold text-ink-800 mt-1">{item.name}</p>
+                    {item.notes && <p className="text-xs text-ink-500 mt-0.5">{item.notes}</p>}
+                    {item.default_cost > 0 && (
+                      <p className="text-xs font-medium text-sage-700 mt-1">
+                        Est. KES {item.default_cost.toLocaleString()}
+                      </p>
+                    )}
                   </div>
-                  <h4 className="font-display font-semibold text-ink-800 text-base">{item.name}</h4>
-                  {item.notes && <p className="text-xs text-ink-500 mt-1 line-clamp-2">{item.notes}</p>}
-                </div>
-                <div className="mt-4 pt-3 border-t border-cream-100 flex items-center justify-between">
-                  <span className="text-xs text-ink-500">
-                    {item.default_cost > 0 ? `$${item.default_cost.toFixed(2)}` : "Quick meal"}
-                  </span>
                   <button
-                    onClick={() => {
-                      void deleteMealLibraryItem(item.id);
-                      void loadAll();
+                    onClick={async () => {
+                      try {
+                        await deleteMealLibraryItem(item.id);
+                        await loadAll();
+                      } catch {
+                        setError("Could not delete item.");
+                      }
                     }}
                     className="text-ink-400 hover:text-rose-soft-600 p-1"
-                    title="Delete"
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )
+              ))}
+            </div>
+          )}
+        </div>
       ) : activeTab === "recipes" ? (
         /* Recipes Tab */
-        recipes.length === 0 ? (
-          <EmptyState
-            icon={<BookOpen size={26} className="text-sage-600" />}
-            title="No recipes saved"
-            hint="Keep your family favorites and kitchen experiments handy."
-          />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {recipes.map((rec) => (
-              <div key={rec.id} className="bg-white rounded-2xl border border-cream-200 p-5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-display font-semibold text-ink-800 text-lg">{rec.title}</h4>
+        <div className="space-y-4">
+          {recipes.length === 0 ? (
+            <EmptyState
+              icon={<BookOpen size={26} className="text-sage-600" />}
+              title="No saved recipes"
+              hint="Write down ingredients and cooking directions for your favorite dishes."
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recipes.map((recipe) => (
+                <div key={recipe.id} className="bg-white rounded-2xl border border-cream-200 p-5">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h3 className="font-display font-semibold text-base text-ink-800">{recipe.title}</h3>
                     <button
-                      onClick={() => {
-                        void deleteRecipe(rec.id);
-                        void loadAll();
+                      onClick={async () => {
+                        try {
+                          await deleteRecipe(recipe.id);
+                          await loadAll();
+                        } catch {
+                          setError("Could not delete recipe.");
+                        }
                       }}
                       className="text-ink-400 hover:text-rose-soft-600 p-1"
-                      title="Delete"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
-                  <p className="text-xs text-ink-500 mb-3">Serves {rec.servings}</p>
-
-                  <div className="mb-3">
-                    <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide mb-1">Ingredients</p>
-                    <p className="text-xs text-ink-600 whitespace-pre-line leading-relaxed font-mono bg-cream-50 p-2.5 rounded-xl border border-cream-100">
-                      {rec.ingredients}
-                    </p>
-                  </div>
-
-                  {rec.instructions && (
+                  <p className="text-xs text-ink-500 mb-3">Servings: {recipe.servings}</p>
+                  {recipe.ingredients && (
+                    <div className="mb-2">
+                      <p className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-1">Ingredients</p>
+                      <p className="text-xs text-ink-600 whitespace-pre-line leading-relaxed">{recipe.ingredients}</p>
+                    </div>
+                  )}
+                  {recipe.instructions && (
                     <div>
-                      <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide mb-1">Instructions</p>
-                      <p className="text-xs text-ink-600 whitespace-pre-line leading-relaxed">{rec.instructions}</p>
+                      <p className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-1">Instructions</p>
+                      <p className="text-xs text-ink-600 whitespace-pre-line leading-relaxed">{recipe.instructions}</p>
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )
+              ))}
+            </div>
+          )}
+        </div>
       ) : activeTab === "pantry" ? (
         /* Pantry Tab */
-        pantry.length === 0 ? (
-          <EmptyState
-            icon={<Package size={26} className="text-sage-600" />}
-            title="Pantry is empty"
-            hint="Track oils, spices, grains, and pantry essentials."
-          />
-        ) : (
-          <div className="bg-white rounded-2xl border border-cream-200 divide-y divide-cream-100 overflow-hidden">
-            {pantry.map((item) => (
-              <div key={item.id} className="p-4 flex items-center justify-between hover:bg-cream-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      void setPantryNeedToBuy(item.id, !item.need_to_buy);
-                      void loadAll();
-                    }}
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
-                      item.need_to_buy
-                        ? "bg-honey-100 text-honey-600 border border-honey-300"
-                        : "bg-cream-100 text-ink-600"
-                    }`}
-                  >
-                    {item.need_to_buy ? "Need to buy" : "In stock"}
-                  </button>
-                  <div>
-                    <span className="text-sm font-semibold text-ink-800">{item.name}</span>
-                    <span className="text-xs text-ink-500 ml-2">
-                      ({item.quantity} {item.unit})
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    void deletePantryItem(item.id);
-                    void loadAll();
-                  }}
-                  className="text-ink-400 hover:text-rose-soft-600 p-1"
+        <div className="space-y-4">
+          {pantry.length === 0 ? (
+            <EmptyState
+              icon={<Package size={26} className="text-sage-600" />}
+              title="Pantry is empty"
+              hint="Track ingredients you have at home to avoid buying duplicates."
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {pantry.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl border border-cream-200 p-4 flex items-center justify-between"
                 >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )
-      ) : (
-        /* Shopping Tab */
-        shopping.length === 0 ? (
-          <EmptyState
-            icon={<ShoppingBag size={26} className="text-sage-600" />}
-            title="Shopping list is empty"
-            hint="Add grocery items or import items flagged as 'Need to buy'."
-          />
-        ) : (
-          <div className="bg-white rounded-2xl border border-cream-200 divide-y divide-cream-100 overflow-hidden">
-            {shopping.map((item) => (
-              <div
-                key={item.id}
-                className={`p-4 flex items-center justify-between transition-colors ${
-                  item.bought ? "bg-cream-50/40 opacity-60" : "hover:bg-cream-50/50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-ink-800">{item.name}</p>
+                    <p className="text-xs text-ink-500 mt-0.5">
+                      {item.quantity} {item.unit}
+                    </p>
+                  </div>
                   <button
-                    onClick={() => {
-                      void setShoppingBought(item.id, !item.bought);
-                      void loadAll();
-                    }}
-                    className="text-ink-400 hover:text-sage-600"
-                  >
-                    {item.bought ? (
-                      <CheckCircle2 size={18} className="text-sage-600 fill-sage-100" />
-                    ) : (
-                      <Circle size={18} />
-                    )}
-                  </button>
-                  <span className={`text-sm font-medium ${item.bought ? "line-through text-ink-400" : "text-ink-800"}`}>
-                    {item.name}
-                  </span>
-                  {item.quantity && <span className="text-xs text-ink-500">x{item.quantity}</span>}
-                </div>
-                <div className="flex items-center gap-3">
-                  {item.est_cost > 0 && (
-                    <span className="text-xs font-mono font-medium text-ink-700">${item.est_cost.toFixed(2)}</span>
-                  )}
-                  <button
-                    onClick={() => {
-                      void deleteShoppingItem(item.id);
-                      void loadAll();
+                    onClick={async () => {
+                      try {
+                        await deletePantryItem(item.id);
+                        await loadAll();
+                      } catch {
+                        setError("Could not delete pantry item.");
+                      }
                     }}
                     className="text-ink-400 hover:text-rose-soft-600 p-1"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Shopping Tab */
+        <div className="space-y-4">
+          {shopping.length === 0 ? (
+            <EmptyState
+              icon={<ShoppingBag size={26} className="text-sage-600" />}
+              title="No shopping items"
+              hint="Add groceries you need to purchase this week."
+            />
+          ) : (
+            <div className="space-y-2">
+              {shopping.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-xl border border-cream-200 px-4 py-3 flex items-center justify-between gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-ink-800">{item.name}</p>
+                    {item.quantity && <p className="text-xs text-ink-500">Qty: {item.quantity}</p>}
+                  </div>
+                  <span className="text-sm font-bold text-ink-700">
+                    KES {(Number(item.est_cost) || 0).toLocaleString()}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await deleteShoppingItem(item.id);
+                        await loadAll();
+                      } catch {
+                        setError("Could not delete item.");
+                      }
+                    }}
+                    className="text-ink-400 hover:text-rose-soft-600 p-1"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Plan Meal Modal */}
@@ -521,74 +726,165 @@ export function MealsPage({
               onChange={(e) => setNewMeal({ ...newMeal, meal_date: e.target.value })}
             />
           </div>
+
           <div>
-            <Label>Type</Label>
+            <Label>Meal Type</Label>
             <div className="grid grid-cols-4 gap-2">
-              {MEAL_TYPES.map((t) => (
+              {MEAL_TYPES.map((type) => (
                 <button
-                  key={t}
+                  key={type}
                   type="button"
-                  onClick={() => setNewMeal({ ...newMeal, meal_type: t })}
-                  className={`py-2 rounded-xl text-xs font-medium border ${
-                    newMeal.meal_type === t
-                      ? "border-sage-500 bg-sage-50 text-sage-700 ring-1 ring-sage-300"
-                      : "border-cream-200 bg-white text-ink-600"
+                  onClick={() => setNewMeal({ ...newMeal, meal_type: type })}
+                  className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                    newMeal.meal_type === type
+                      ? "bg-sage-600 text-white border-sage-600 shadow-xs"
+                      : "bg-white text-ink-700 border-cream-200 hover:bg-cream-100"
                   }`}
                 >
-                  {t}
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label>Meal Name</Label>
+            <Input
+              placeholder="e.g. Ugali, Sukuma Wiki & Beef"
+              value={newMeal.name}
+              onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <Label>Estimated Cost (KES)</Label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="e.g. 450"
+              value={newMeal.cost}
+              onChange={(e) => setNewMeal({ ...newMeal, cost: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label>Notes (optional)</Label>
+            <Input
+              placeholder="e.g. home cooked, leftover for lunch"
+              value={newMeal.notes}
+              onChange={(e) => setNewMeal({ ...newMeal, notes: e.target.value })}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
+            <Button variant="secondary" onClick={() => setMealModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddMeal} disabled={!newMeal.name.trim()}>
+              Add to Schedule
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Set Weekly Food Budget Modal */}
+      <Modal open={budgetModalOpen} onClose={() => setBudgetModalOpen(false)} title="Set Weekly Food Budget">
+        <div className="space-y-4">
+          <p className="text-xs text-ink-600 leading-relaxed">
+            Set your target weekly spending limit for food and groceries. Your weekly planner will automatically compare total planned meals against this budget.
+          </p>
+
+          <div>
+            <Label>Weekly Budget (KES)</Label>
+            <Input
+              type="number"
+              min="0"
+              value={budgetInput}
+              onChange={(e) => setBudgetInput(e.target.value)}
+              placeholder="e.g. 5000"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
+            <Button variant="secondary" onClick={() => setBudgetModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveBudget}>Save Budget</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add to Library Modal */}
+      <Modal open={libraryModal} onClose={() => setLibraryModal(false)} title="Add to Meal Library">
+        <div className="space-y-4">
+          <div>
+            <Label>Meal Name</Label>
+            <Input
+              value={newLibItem.name}
+              onChange={(e) => setNewLibItem({ ...newLibItem, name: e.target.value })}
+              placeholder="e.g. Githeri with avocado"
+              autoFocus
+            />
+          </div>
+          <div>
+            <Label>Meal Type</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {MEAL_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setNewLibItem({ ...newLibItem, meal_type: type })}
+                  className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                    newLibItem.meal_type === type
+                      ? "bg-sage-600 text-white border-sage-600"
+                      : "bg-white text-ink-700 border-cream-200"
+                  }`}
+                >
+                  {type}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <Label>Meal Name</Label>
+            <Label>Default Cost (KES, optional)</Label>
             <Input
-              value={newMeal.name}
-              onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
-              placeholder="e.g. Avocado Toast & Chai"
-              autoFocus
+              type="number"
+              min="0"
+              value={newLibItem.default_cost}
+              onChange={(e) => setNewLibItem({ ...newLibItem, default_cost: e.target.value })}
+              placeholder="0"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Estimated Cost (Optional)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={newMeal.cost}
-                onChange={(e) => setNewMeal({ ...newMeal, cost: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <Label>Notes</Label>
-              <Input
-                value={newMeal.notes}
-                onChange={(e) => setNewMeal({ ...newMeal, notes: e.target.value })}
-                placeholder="Prep notes, sides..."
-              />
-            </div>
+          <div>
+            <Label>Notes (optional)</Label>
+            <Input
+              value={newLibItem.notes}
+              onChange={(e) => setNewLibItem({ ...newLibItem, notes: e.target.value })}
+              placeholder="Quick recipe tip or staple ingredient"
+            />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setMealModal(false)}>
+          <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
+            <Button variant="secondary" onClick={() => setLibraryModal(false)}>
               Cancel
             </Button>
-            <Button onClick={() => void handleAddMeal()} disabled={!newMeal.name.trim()}>
-              Save Meal
+            <Button onClick={handleAddLib} disabled={!newLibItem.name.trim()}>
+              Save to Library
             </Button>
           </div>
         </div>
       </Modal>
 
       {/* Add Recipe Modal */}
-      <Modal open={recipeModal} onClose={() => setRecipeModal(false)} title="Add Recipe">
+      <Modal open={recipeModal} onClose={() => setRecipeModal(false)} title="New Recipe">
         <div className="space-y-4">
           <div>
-            <Label>Recipe Name</Label>
+            <Label>Dish Title</Label>
             <Input
               value={newRecipe.title}
               onChange={(e) => setNewRecipe({ ...newRecipe, title: e.target.value })}
-              placeholder="e.g. Grandma's Lentil Soup"
+              placeholder="e.g. Pilau Rice with Kachumbari"
               autoFocus
             />
           </div>
@@ -596,101 +892,35 @@ export function MealsPage({
             <Label>Servings</Label>
             <Input
               type="number"
+              min="1"
               value={newRecipe.servings}
-              onChange={(e) => setNewRecipe({ ...newRecipe, servings: Number(e.target.value) })}
+              onChange={(e) => setNewRecipe({ ...newRecipe, servings: Number(e.target.value) || 1 })}
             />
           </div>
           <div>
-            <Label>Ingredients (one per line)</Label>
+            <Label>Ingredients</Label>
             <Textarea
-              rows={4}
               value={newRecipe.ingredients}
               onChange={(e) => setNewRecipe({ ...newRecipe, ingredients: e.target.value })}
-              placeholder="1 cup brown lentils&#10;2 carrots, diced&#10;1 onion"
-              className="font-mono text-xs"
+              placeholder="List items, e.g.&#10;2 cups rice&#10;500g beef&#10;Pilau masala"
+              rows={4}
             />
           </div>
           <div>
-            <Label>Instructions</Label>
+            <Label>Cooking Directions</Label>
             <Textarea
-              rows={4}
               value={newRecipe.instructions}
               onChange={(e) => setNewRecipe({ ...newRecipe, instructions: e.target.value })}
-              placeholder="Simmer vegetables, add stock and lentils for 35 min..."
+              placeholder="Step by step preparation..."
+              rows={4}
             />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
             <Button variant="secondary" onClick={() => setRecipeModal(false)}>
               Cancel
             </Button>
-            <Button onClick={() => void handleAddRecipe()} disabled={!newRecipe.title.trim()}>
+            <Button onClick={handleAddRecipe} disabled={!newRecipe.title.trim()}>
               Save Recipe
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Add Library Modal */}
-      <Modal open={libraryModal} onClose={() => setLibraryModal(false)} title="Add Meal to Library">
-        <div className="space-y-4">
-          <div className="grid grid-cols-4 gap-3">
-            <div className="col-span-1">
-              <Label>Emoji</Label>
-              <Input
-                value={newLibItem.emoji}
-                onChange={(e) => setNewLibItem({ ...newLibItem, emoji: e.target.value })}
-                className="text-center text-lg"
-              />
-            </div>
-            <div className="col-span-3">
-              <Label>Meal Name</Label>
-              <Input
-                value={newLibItem.name}
-                onChange={(e) => setNewLibItem({ ...newLibItem, name: e.target.value })}
-                placeholder="e.g. Quinoa Salad"
-                autoFocus
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Type</Label>
-              <select
-                value={newLibItem.meal_type}
-                onChange={(e) => setNewLibItem({ ...newLibItem, meal_type: e.target.value })}
-                className="w-full rounded-xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm"
-              >
-                {MEAL_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Default Cost</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={newLibItem.default_cost}
-                onChange={(e) => setNewLibItem({ ...newLibItem, default_cost: Number(e.target.value) })}
-              />
-            </div>
-          </div>
-          <div>
-            <Label>Notes</Label>
-            <Input
-              value={newLibItem.notes}
-              onChange={(e) => setNewLibItem({ ...newLibItem, notes: e.target.value })}
-              placeholder="Quick recipe reference or favorite brands"
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setLibraryModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => void handleAddLib()} disabled={!newLibItem.name.trim()}>
-              Save
             </Button>
           </div>
         </div>
@@ -704,7 +934,7 @@ export function MealsPage({
             <Input
               value={newPantry.name}
               onChange={(e) => setNewPantry({ ...newPantry, name: e.target.value })}
-              placeholder="e.g. Rolled Oats"
+              placeholder="e.g. Rice, Onions, Cooking oil"
               autoFocus
             />
           </div>
@@ -714,6 +944,7 @@ export function MealsPage({
               <Input
                 value={newPantry.quantity}
                 onChange={(e) => setNewPantry({ ...newPantry, quantity: e.target.value })}
+                placeholder="2"
               />
             </div>
             <div>
@@ -721,30 +952,30 @@ export function MealsPage({
               <Input
                 value={newPantry.unit}
                 onChange={(e) => setNewPantry({ ...newPantry, unit: e.target.value })}
-                placeholder="bag, jar, lbs..."
+                placeholder="kg, bottles, items"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
             <Button variant="secondary" onClick={() => setPantryModal(false)}>
               Cancel
             </Button>
-            <Button onClick={() => void handleAddPantry()} disabled={!newPantry.name.trim()}>
-              Save
+            <Button onClick={handleAddPantry} disabled={!newPantry.name.trim()}>
+              Save Item
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Add Shopping Item Modal */}
-      <Modal open={shoppingModal} onClose={() => setShoppingModal(false)} title="Add Shopping Item">
+      {/* Add Grocery Item Modal */}
+      <Modal open={shoppingModal} onClose={() => setShoppingModal(false)} title="Add Grocery Item">
         <div className="space-y-4">
           <div>
             <Label>Item Name</Label>
             <Input
               value={newShopping.name}
               onChange={(e) => setNewShopping({ ...newShopping, name: e.target.value })}
-              placeholder="e.g. Almond Milk"
+              placeholder="e.g. Tomatoes, Milk, Bread"
               autoFocus
             />
           </div>
@@ -754,23 +985,25 @@ export function MealsPage({
               <Input
                 value={newShopping.quantity}
                 onChange={(e) => setNewShopping({ ...newShopping, quantity: e.target.value })}
+                placeholder="1 pack"
               />
             </div>
             <div>
-              <Label>Est. Cost ($)</Label>
+              <Label>Est. Cost (KES)</Label>
               <Input
                 type="number"
-                step="0.01"
+                min="0"
                 value={newShopping.est_cost}
-                onChange={(e) => setNewShopping({ ...newShopping, est_cost: Number(e.target.value) })}
+                onChange={(e) => setNewShopping({ ...newShopping, est_cost: e.target.value })}
+                placeholder="150"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
             <Button variant="secondary" onClick={() => setShoppingModal(false)}>
               Cancel
             </Button>
-            <Button onClick={() => void handleAddShopping()} disabled={!newShopping.name.trim()}>
+            <Button onClick={handleAddShopping} disabled={!newShopping.name.trim()}>
               Add to List
             </Button>
           </div>
