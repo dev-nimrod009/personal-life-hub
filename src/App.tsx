@@ -32,6 +32,7 @@ import { bindLocalCacheToUser, getProfile, syncLocalToCloud } from "./lib/data";
 import { isSupabaseConfigured } from "./lib/supabase";
 import type { Profile } from "./lib/types";
 import { Modal } from "./components/ui";
+import { getInitials } from "./lib/utils";
 
 function renderSection(section: SectionId, onNavigate: (id: string) => void, mealTab: MealTab) {
   switch (section) {
@@ -225,7 +226,7 @@ export default function App() {
     profile.avatar_url.length <= 4 &&
     !profile.avatar_url.startsWith("http") &&
     !profile.avatar_url.startsWith("data:");
-  const initials = (profile?.full_name?.trim() || user?.email || "U").slice(0, 2).toUpperCase();
+  const initials = getInitials(profile?.full_name || user?.email);
   const displayName = profile?.full_name?.trim()
     ? profile.full_name.trim().split(/\s+/)[0]
     : user?.email?.split("@")[0] || "Profile";

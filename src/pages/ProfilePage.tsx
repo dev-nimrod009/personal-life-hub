@@ -28,6 +28,7 @@ import { useAuth } from "../lib/auth";
 import type { Profile } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
 import { clearLocalData, getStoredValue, setStoredValue } from "../lib/storage";
+import { getInitials } from "../lib/utils";
 
 const AVATAR_PRESETS = [
   { emoji: "🌿", label: "Leaf" },
@@ -326,9 +327,7 @@ export function ProfilePage() {
     })();
   };
 
-  const initials = (form.full_name.trim() || user?.email || "U")
-    .slice(0, 2)
-    .toUpperCase();
+  const initials = getInitials(form.full_name || user?.email);
 
   const isEmoji =
     form.avatar_url.length <= 4 &&
