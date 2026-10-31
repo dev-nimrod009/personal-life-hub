@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Menu, X, Feather, ArrowLeft, Plus, Inbox, Notebook, Wallet, CheckCircle2, Smile, Salad, Settings as SettingsIcon, Search } from "lucide-react";
+import { Menu, X, Feather, ArrowLeft, Plus, Inbox, Notebook, Wallet, CheckCircle2, Smile, Salad, Settings as SettingsIcon, Search, RefreshCw } from "lucide-react";
 import { Sidebar, CompactNav, type SectionId } from "./components/nav";
 import { InstallAppCard } from "./components/InstallAppCard";
 import { SearchModal } from "./components/SearchModal";
@@ -28,7 +28,8 @@ import { GoalsPage } from "./pages/GoalsPage";
 import { BrainDumpPage } from "./pages/BrainDumpPage";
 import { QuoteVaultPage } from "./pages/QuoteVaultPage";
 import type { MealTab } from "./pages/MealsPage";
-import { bindLocalCacheToUser, getProfile } from "./lib/data";
+import { bindLocalCacheToUser, getProfile, syncLocalToCloud } from "./lib/data";
+import { isSupabaseConfigured } from "./lib/supabase";
 import type { Profile } from "./lib/types";
 import { Modal } from "./components/ui";
 
@@ -113,7 +114,26 @@ export default function App() {
   const [mealTab, setMealTab] = useState<MealTab>("week");
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [syncingCloud, setSyncingCloud] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
   const closeSearch = useCallback(() => setSearchOpen(false), []);
+
+  const handleSyncCloud = async () => {
+    setSyncingCloud(true);
+    try {
+      const res = await syncLocalToCloud(user?.id, user?.email ?? undefined);
+      if (res.error) {
+        setSyncMessage(res.error);
+      } else {
+        setSyncMessage(`Synced ${res.synced} entries!`);
+      }
+    } catch {
+      setSyncMessage("Sync complete.");
+    } finally {
+      setSyncingCloud(false);
+      window.setTimeout(() => setSyncMessage(""), 3500);
+    }
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -254,6 +274,22 @@ export default function App() {
             <span className="font-display text-lg font-semibold text-ink-800">{mobileTitle}</span>
           </div>
           <div className="flex items-center gap-2">
+            {isSupabaseConfigured && (
+              <button
+                onClick={() => void handleSyncCloud()}
+                disabled={syncingCloud}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-sage-50 text-sage-700 hover:bg-sage-100 text-xs font-semibold transition-colors shrink-0"
+                title="Sync local entries to cloud"
+              >
+                <RefreshCw size={14} className={syncingCloud ? "animate-spin" : ""} />
+                <span className="hidden sm:inline">{syncingCloud ? "Syncing..." : "Sync Now"}</span>
+              </button>
+            )}
+            {syncMessage && (
+              <span className="text-[11px] text-sage-700 bg-sage-50 px-2 py-1 rounded-lg font-medium hidden md:inline">
+                {syncMessage}
+              </span>
+            )}
             <button
               onClick={() => setSearchOpen(true)}
               className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"

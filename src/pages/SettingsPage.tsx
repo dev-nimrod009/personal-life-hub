@@ -370,8 +370,8 @@ export function SettingsPage() {
               </p>
               <p className="text-xs text-ink-500 mt-0.5">
                 {isSupabaseConfigured
-                  ? "Changes sync across all devices signed into this account."
-                  : "Entries are saved securely on this device. Without cloud database credentials (Supabase), data stays isolated to this phone/browser."}
+                  ? "Changes sync across all devices signed into your account."
+                  : "Entries are saved securely on this device. You can export backups at any time."}
               </p>
             </div>
             <span

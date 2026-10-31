@@ -174,10 +174,16 @@ const TABLES_WITH_CREATED_AT = new Set([
 ]);
 
 async function remoteOrQueue(input: Omit<SyncItem, "ts">): Promise<void> {
+  const userId = isSupabaseConfigured ? (await supabase.auth.getUser().catch(() => null))?.data.user?.id : undefined;
+  const rowWithUser = userId && typeof input.row === "object" && input.row !== null && !("user_id" in input.row)
+    ? { ...input.row, user_id: userId }
+    : input.row;
+
   const item =
-    input.kind === "insert" && TABLES_WITH_CREATED_AT.has(input.table) && !input.row.created_at
-      ? { ...input, row: { ...input.row, created_at: new Date().toISOString() } }
-      : input;
+    input.kind === "insert" && TABLES_WITH_CREATED_AT.has(input.table) && !rowWithUser.created_at
+      ? { ...input, row: { ...rowWithUser, created_at: new Date().toISOString() } }
+      : { ...input, row: rowWithUser };
+
   writeLocalForItem(item);
   if (!isSupabaseConfigured) {
     notify();
@@ -234,10 +240,20 @@ export async function flushSync(): Promise<void> {
 }
 
 if (typeof window !== "undefined") {
-  window.addEventListener("online", () => void flushSync());
+  window.addEventListener("online", () => {
+    void flushSync();
+    if (isSupabaseConfigured && currentUserId && currentUserId !== "guest" && !currentUserId.startsWith("local-")) {
+      void syncLocalToCloud(currentUserId, currentUserEmail);
+    }
+  });
   window.setInterval(() => {
-    if (navigator.onLine) void flushSync();
-  }, 15000);
+    if (navigator.onLine) {
+      void flushSync();
+      if (isSupabaseConfigured && currentUserId && currentUserId !== "guest" && !currentUserId.startsWith("local-")) {
+        void syncLocalToCloud(currentUserId, currentUserEmail);
+      }
+    }
+  }, 30000);
   void flushSync();
 }
 
