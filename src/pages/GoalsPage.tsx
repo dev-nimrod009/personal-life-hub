@@ -146,7 +146,7 @@ export function GoalsPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Goals & Vision"
-        subtitle="Define what you want, why it matters, and when you will achieve it"
+        subtitle="Define your long-term vision, clarify why it matters, and track actionable milestone steps."
         action={
           <Button onClick={() => setOpen(true)}>
             <Plus size={16} /> New Goal

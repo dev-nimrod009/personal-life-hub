@@ -337,7 +337,7 @@ export function ProfilePage() {
 
   return (
     <div className="animate-fade-up pb-12">
-      <SectionHeader title="Profile" subtitle="Your personal identity, stats, and security shortcuts" />
+      <SectionHeader title="Profile" subtitle="Manage your personal profile, review your total activity streaks, and configure security." />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
       {pinSuccess && <div className="mb-4 rounded-xl bg-sage-100 text-sage-700 text-sm px-4 py-3 font-medium flex items-center gap-2"><Check size={16} />{pinSuccess}</div>}

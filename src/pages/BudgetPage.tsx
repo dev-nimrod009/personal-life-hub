@@ -127,7 +127,7 @@ export function BudgetPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Budget"
-        subtitle="Track income, expenses, and see where your money goes"
+        subtitle="Log your daily income and expenses to understand spending habits and grow savings."
         action={<Button onClick={() => setOpen(true)}><Plus size={16} /> New entry</Button>}
       />
 

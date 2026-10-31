@@ -121,7 +121,7 @@ export function RemindersPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Reminders"
-        subtitle="Time-sensitive tasks, follow-ups, and commitments"
+        subtitle="Set deadlines, upcoming follow-ups, and time-sensitive commitments so nothing slips through."
         action={
           <Button onClick={openNew}>
             <Plus size={16} /> New Reminder

@@ -58,7 +58,7 @@ export function WaterPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Hydration Tracker"
-        subtitle="Stay refreshed and build steady daily water drinking habits"
+        subtitle="Track your daily water intake in milliliters to stay refreshed, focused, and energized."
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}

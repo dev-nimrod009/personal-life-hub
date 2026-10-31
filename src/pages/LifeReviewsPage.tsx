@@ -126,7 +126,7 @@ export function LifeReviewsPage() {
     <div className="animate-fade-up pb-12">
       <SectionHeader
         title="Guided Life Reviews"
-        subtitle="Pause, reflect, and auto-synthesize your wins, habits, and growth"
+        subtitle="Review your weekly and monthly milestones, celebrate wins, and reflect on personal growth."
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
@@ -156,11 +156,11 @@ export function LifeReviewsPage() {
         </button>
       </div>
 
-      {/* Auto-pulled metrics banner */}
+      {/* Activity metrics banner */}
       <section className="bg-cream-50 rounded-2xl border border-cream-200 p-5 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={16} className="text-sage-600" />
-          <h3 className="font-display text-sm font-semibold text-ink-800">Auto-Pulled App Data</h3>
+          <h3 className="font-display text-sm font-semibold text-ink-800">Your Activity Highlights</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div className="bg-white rounded-xl p-3 border border-cream-200">

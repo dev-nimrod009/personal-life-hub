@@ -128,7 +128,7 @@ export function DiaryPage() {
                 <span className="text-honey-600 flex items-center gap-1">Saving draft...</span>
               ) : saveStatus === "saved" ? (
                 <span className="text-sage-600 flex items-center gap-1">
-                  <Check size={13} /> Auto-saved
+                  <Check size={13} /> Saved
                 </span>
               ) : (
                 <span className="text-ink-400">Unsaved changes</span>
@@ -187,7 +187,7 @@ export function DiaryPage() {
             <textarea
               value={content}
               onChange={(e) => handleContentChange(e.target.value)}
-              placeholder="What happened today? How did you feel? Write freely — your diary auto-saves continuously..."
+              placeholder="What happened today? How did you feel, who did you spend time with, and what made today unique?"
               className="font-sans text-base sm:text-lg leading-relaxed text-ink-800 placeholder:text-ink-400/50 bg-transparent border-0 focus:outline-none w-full flex-1 min-h-[60vh] resize-none"
               autoFocus
             />
@@ -201,7 +201,7 @@ export function DiaryPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Diary"
-        subtitle="One full page per day with auto-save, just like a private notebook"
+        subtitle="A dedicated daily page to record the day's events, memories, personal feelings, and milestones."
         action={
           <Button onClick={() => openForDate(today)}>
             <Plus size={16} /> {todayEntry ? "Open Today's Page" : "Add Entry"}

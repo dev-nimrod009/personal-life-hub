@@ -71,7 +71,7 @@ export function QuoteVaultPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Quote Vault"
-        subtitle="Timeless wisdom, poetry, and words that ground and inspire you"
+        subtitle="Save inspiring quotes, uplifting book passages, and timeless words that ground you."
         action={
           <Button onClick={() => setModalOpen(true)}>
             <Plus size={16} /> Add Quote

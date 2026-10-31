@@ -61,7 +61,7 @@ export function GratitudePage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Gratitude Sanctuary"
-        subtitle="Notice small good things, cultivate a calm and appreciative heart"
+        subtitle="Write down the small blessings, kind gestures, and positive moments you are thankful for."
         action={
           <Button onClick={() => setModalOpen(true)}>
             <Plus size={16} /> Add note

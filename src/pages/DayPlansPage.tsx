@@ -94,7 +94,7 @@ export function DayPlansPage() {
 
   return (
     <div className="animate-fade-up">
-      <SectionHeader title="Day Plans" subtitle="Your to-do list for any day" />
+      <SectionHeader title="Day Plans" subtitle="Plan your daily focus, prioritize urgent tasks, and check off completed items." />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
 

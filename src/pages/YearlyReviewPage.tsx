@@ -95,7 +95,7 @@ export function YearlyReviewPage() {
     <div className="animate-fade-up pb-12">
       <SectionHeader
         title="Guided Yearly Review"
-        subtitle="Reflect on the entire year, celebrate your growth, and set a peaceful vision for the year ahead"
+        subtitle="Reflect on the past year's highlights, celebrate achievements, and write your vision for the year ahead."
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
@@ -105,11 +105,11 @@ export function YearlyReviewPage() {
         </div>
       )}
 
-      {/* Auto-pulled year metrics */}
+      {/* Year metrics */}
       <section className="bg-cream-50 rounded-2xl border border-cream-200 p-5 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={16} className="text-sage-600" />
-          <h3 className="font-display text-sm font-semibold text-ink-800">Your Year in Numbers (Auto-Pulled)</h3>
+          <h3 className="font-display text-sm font-semibold text-ink-800">Your Year in Numbers</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div className="bg-white rounded-xl p-3 border border-cream-200">

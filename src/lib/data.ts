@@ -30,6 +30,7 @@ type Row = Record<string, unknown>;
 // ---------- offline storage ----------
 
 let currentUserId = "guest";
+let currentUserEmail: string | undefined = undefined;
 
 export function getActiveUserId(): string {
   return currentUserId;
@@ -42,12 +43,20 @@ function readLocal(table: string): Row[] {
   try {
     const key = cacheKey(table);
     let raw = localGet(key);
-    // Migrate legacy unscoped cache if not guest
+    // Migrate legacy or offline local cache if not found
     if (!raw && currentUserId && !currentUserId.includes("guest")) {
-      const legacy = localGet(`lifehub:cache:${table}`);
-      if (legacy) {
-        raw = legacy;
-        localSet(key, legacy);
+      const candidates = [
+        ...(currentUserEmail ? [`lifehub:cache:local-${currentUserEmail.trim().toLowerCase()}:${table}`] : []),
+        `lifehub:cache:${table}`,
+        `lifehub:cache:guest:${table}`,
+      ];
+      for (const cand of candidates) {
+        const found = localGet(cand);
+        if (found) {
+          raw = found;
+          localSet(key, found);
+          break;
+        }
       }
     }
     const parsed: unknown = JSON.parse(raw ?? "[]");
@@ -234,9 +243,106 @@ if (typeof window !== "undefined") {
 
 // ---------- offline-aware reads ----------
 
-/** Sets active user for device storage isolation. */
-export function bindLocalCacheToUser(userId: string): void {
+export const ALL_FEATURE_TABLES = [
+  "journal_entries",
+  "diary_entries",
+  "notes",
+  "day_plans",
+  "reminders",
+  "habits",
+  "habit_logs",
+  "meals",
+  "moods",
+  "water_intake",
+  "gratitude_entries",
+  "goals",
+  "goal_steps",
+  "saved_quotes",
+  "inbox_items",
+  "recipes",
+  "meal_library",
+  "pantry_items",
+  "shopping_list",
+  "budget_items",
+] as const;
+
+/** Pushes any offline/local entries from this device into the cloud Supabase database */
+export async function syncLocalToCloud(targetUserId?: string, userEmail?: string): Promise<{ synced: number; error?: string }> {
+  if (!isSupabaseConfigured) return { synced: 0, error: "Cloud database not configured" };
+  const uid = targetUserId || currentUserId;
+  if (!uid || uid === "guest" || uid.startsWith("local-")) {
+    return { synced: 0, error: "Please sign in with your email account first" };
+  }
+
+  let totalSynced = 0;
+  const email = userEmail || currentUserEmail || "";
+  const normalizedEmail = email.trim().toLowerCase();
+
+  for (const table of ALL_FEATURE_TABLES) {
+    try {
+      const candidateKeys = [
+        `lifehub:cache:${uid}:${table}`,
+        ...(normalizedEmail ? [`lifehub:cache:local-${normalizedEmail}:${table}`] : []),
+        `lifehub:cache:guest:${table}`,
+        `lifehub:cache:${table}`,
+      ];
+
+      const rowsMap = new Map<string, Row>();
+      for (const k of candidateKeys) {
+        const raw = localGet(k);
+        if (raw) {
+          try {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) {
+              for (const r of arr) {
+                if (r && typeof r === "object" && typeof r.id === "string") {
+                  if (!rowsMap.has(r.id)) rowsMap.set(r.id, r);
+                }
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      if (rowsMap.size === 0) continue;
+
+      const combined = Array.from(rowsMap.values());
+      localSet(`lifehub:cache:${uid}:${table}`, JSON.stringify(combined));
+
+      for (const row of combined) {
+        const cloudRow = { ...row, user_id: uid };
+        const { error } = await supabase.from(table).upsert(cloudRow);
+        if (!error) {
+          totalSynced++;
+        }
+      }
+    } catch {
+      // continue next table
+    }
+  }
+
+  await flushSync();
+  return { synced: totalSynced };
+}
+
+/** Sets active user for device storage isolation and triggers cloud upload if needed. */
+export function bindLocalCacheToUser(userId: string, email?: string): void {
+  const previousId = currentUserId;
   currentUserId = userId || "guest";
+  if (email) currentUserEmail = email;
+
+  // When a real Supabase user logs in, trigger background cloud sync of any existing local entries
+  if (
+    isSupabaseConfigured &&
+    currentUserId &&
+    currentUserId !== "guest" &&
+    !currentUserId.startsWith("local-") &&
+    previousId !== currentUserId
+  ) {
+    void syncLocalToCloud(currentUserId, email);
+  }
 }
 
 export async function fetchAllRows(table: string): Promise<Row[]> {
@@ -394,8 +500,10 @@ export async function updateProfile(userId: string, changes: Partial<Profile>): 
 
 export function getMealBudget(userId?: string): number {
   const uid = userId || currentUserId || "default";
-  const val = Number(localGet(`lifehub:meal-budget:${uid}`));
-  return Number.isFinite(val) && val > 0 ? val : 3500;
+  const raw = localGet(`lifehub:meal-budget:${uid}`);
+  if (raw === null || raw === undefined) return 0;
+  const val = Number(raw);
+  return Number.isFinite(val) && val >= 0 ? val : 0;
 }
 
 export function setMealBudget(budget: number, userId?: string): void {

@@ -251,7 +251,7 @@ export function NotesPage() {
                 <span className="text-honey-600 flex items-center gap-1">Saving draft...</span>
               ) : saveStatus === "saved" ? (
                 <span className="text-sage-600 flex items-center gap-1">
-                  <Check size={13} /> Auto-saved
+                  <Check size={13} /> Saved
                 </span>
               ) : (
                 <span className="text-ink-400">Unsaved changes</span>
@@ -332,7 +332,7 @@ export function NotesPage() {
             <textarea
               value={content}
               onChange={(e) => handleContentChange(title, e.target.value, category, pinned)}
-              placeholder="Start writing here... Your changes auto-save continuously."
+              placeholder="Write your notes, lists, reference guides, or personal thoughts here..."
               className="font-sans text-base sm:text-lg leading-relaxed text-ink-800 placeholder:text-ink-400/50 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 ring-0 w-full flex-1 min-h-[60vh] resize-none p-0 shadow-none"
               autoFocus
             />
@@ -346,7 +346,7 @@ export function NotesPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Notepad"
-        subtitle="Clean personal notes with auto-save and private lock"
+        subtitle="Jot down quick reference notes, checklists, meeting memos, and organized private thoughts."
         action={
           <Button onClick={() => openNew()}>
             <Plus size={16} /> New Note

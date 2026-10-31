@@ -79,7 +79,7 @@ export function BrainDumpPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Brain Dump"
-        subtitle="Dump a thought now, organize it later"
+        subtitle="Quickly capture spontaneous thoughts, flashes of inspiration, and mental clutter to organize later."
         action={
           <Button onClick={() => setModalOpen(true)}>
             <Plus size={16} /> Add thought

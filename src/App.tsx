@@ -108,7 +108,7 @@ const SECTION_TITLES: Record<SectionId, string> = {
 
 export default function App() {
   const { session, user, loading, offlineAccess } = useAuth();
-  if (user) bindLocalCacheToUser(user.id);
+  if (user) bindLocalCacheToUser(user.id, user.email ?? undefined);
   const [section, setSection] = useState<SectionId>("dashboard");
   const [mealTab, setMealTab] = useState<MealTab>("week");
   const [menuOpen, setMenuOpen] = useState(false);

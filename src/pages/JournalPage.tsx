@@ -148,7 +148,7 @@ export function JournalPage() {
                 <span className="text-honey-600 flex items-center gap-1">Saving draft...</span>
               ) : saveStatus === "saved" ? (
                 <span className="text-sage-600 flex items-center gap-1">
-                  <Check size={13} /> Auto-saved
+                  <Check size={13} /> Saved
                 </span>
               ) : (
                 <span className="text-ink-400">Unsaved changes</span>
@@ -206,7 +206,7 @@ export function JournalPage() {
             <textarea
               value={content}
               onChange={(e) => handleContentChange(title, e.target.value, mood)}
-              placeholder="Pour out your thoughts, dreams, and reflections here... Everything auto-saves continuously as you write."
+              placeholder="Write about your ideas, life lessons, deep reflections, and whatever is on your mind..."
               className="font-sans text-base sm:text-lg leading-relaxed text-ink-800 placeholder:text-ink-400/50 bg-transparent border-0 focus:outline-none w-full flex-1 min-h-[60vh] resize-none"
               autoFocus
             />
@@ -220,7 +220,7 @@ export function JournalPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Journal"
-        subtitle="Spacious reflections and mindfulness thoughts that auto-save"
+        subtitle="Write long-form reflections, explore personal thoughts, and capture meaningful life lessons."
         action={
           <Button onClick={openNew}>
             <Plus size={16} /> New Reflection

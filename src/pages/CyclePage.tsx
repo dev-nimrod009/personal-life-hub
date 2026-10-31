@@ -66,7 +66,7 @@ export function CyclePage() {
     <div className="animate-fade-up pb-12">
       <SectionHeader
         title="Cycle Tracking"
-        subtitle="Private, calm, and optional cycle insights and symptom logging"
+        subtitle="Privately log your cycle phases, physical symptoms, and energy changes to understand your rhythm."
         action={
           <Button onClick={() => setOpen(true)}>
             <Plus size={16} /> Log cycle / period

@@ -102,7 +102,7 @@ export function HabitsPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Habits with Soul"
-        subtitle="Track streaks and anchor identity statements ('I am someone who...'). Gentle recovery mode always."
+        subtitle="Build positive daily routines with identity-based affirmations, gentle recovery, and consistency tracking."
         action={
           <Button onClick={() => setOpen(true)}>
             <Plus size={16} /> New habit

@@ -282,7 +282,7 @@ export function MealsPage({
     <div className="animate-fade-up">
       <SectionHeader
         title="Meal Planner"
-        subtitle="Schedule your week, track food spending in KES, and stay within budget"
+        subtitle="Plan your weekly meals, estimate food costs in KES, and stay within your target budget."
         action={
           activeTab === "week" ? (
             <Button

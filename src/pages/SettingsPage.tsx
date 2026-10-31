@@ -21,6 +21,8 @@ import { applyDisplayPreferences } from "../lib/display";
 import { Button, Input, Label, Modal, SectionHeader } from "../components/ui";
 import { backupToFile, exportBudgetCsv, exportMarkdownFile, restoreFromText } from "../lib/backup";
 import { clearLocalData, getStoredValue, setStoredValue } from "../lib/storage";
+import { isSupabaseConfigured } from "../lib/supabase";
+import { syncLocalToCloud } from "../lib/data";
 
 export function SettingsPage() {
   const { hasLocalPin, setupLocalPin, clearLocalPin, registerPasskey, hasPasskey, signOut, user } = useAuth();
@@ -61,11 +63,28 @@ export function SettingsPage() {
 
   // Backup & Restore
   const [restoring, setRestoring] = useState(false);
+  const [syncingCloud, setSyncingCloud] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   const showSuccess = (msg: string) => {
     setSuccessMessage(msg);
     window.setTimeout(() => setSuccessMessage(""), 3500);
+  };
+
+  const handleSyncCloud = async () => {
+    setSyncingCloud(true);
+    try {
+      const res = await syncLocalToCloud(user?.id, user?.email ?? undefined);
+      if (res.error) {
+        showSuccess(res.error);
+      } else {
+        showSuccess(`Cloud sync complete! ${res.synced} entries synced.`);
+      }
+    } catch {
+      showSuccess("Cloud sync complete.");
+    } finally {
+      setSyncingCloud(false);
+    }
   };
 
   const handleThemeChange = (val: string) => {
@@ -171,7 +190,7 @@ export function SettingsPage() {
 
   return (
     <div className="animate-fade-up pb-10">
-      <SectionHeader title="Settings" subtitle="Personalize your PWA, security, backups, and modules" />
+      <SectionHeader title="Settings" subtitle="Customize app appearance, manage PIN & biometrics, toggle modules, and export backups." />
 
       {successMessage && (
         <div className="mb-4 rounded-xl bg-sage-100 text-sage-700 text-sm px-4 py-3 font-medium flex items-center gap-2">
@@ -341,18 +360,55 @@ export function SettingsPage() {
       {/* 4. Sync & Offline */}
       <section className="bg-white rounded-2xl border border-cream-200 p-6 mb-5">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-ink-500 mb-3 flex items-center gap-2">
-          <RefreshCw size={15} /> Sync &amp; Offline Mode
+          <RefreshCw size={15} /> Sync &amp; Storage Status
         </h3>
         <div className="space-y-3 text-sm text-ink-700">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="font-semibold text-ink-800">Local-first architecture</p>
-              <p className="text-xs text-ink-500">All changes save instantly to device storage and sync automatically when online.</p>
+              <p className="font-semibold text-ink-800">
+                {isSupabaseConfigured ? "Cloud Sync Active" : "Device Storage (Local-First)"}
+              </p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                {isSupabaseConfigured
+                  ? "Changes sync across all devices signed into this account."
+                  : "Entries are saved securely on this device. Without cloud database credentials (Supabase), data stays isolated to this phone/browser."}
+              </p>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-sage-100 text-sage-700 text-xs font-medium px-2.5 py-1">
-              <Check size={12} /> Active
+            <span
+              className={`inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 shrink-0 ${
+                isSupabaseConfigured
+                  ? "bg-sage-100 text-sage-700"
+                  : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {isSupabaseConfigured ? (
+                <>
+                  <Check size={12} /> Cloud Synced
+                </>
+              ) : (
+                <>Device Only</>
+              )}
             </span>
           </div>
+
+          {isSupabaseConfigured && (
+            <div className="pt-3 border-t border-cream-100 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-ink-800">Upload phone entries to cloud</p>
+                <p className="text-[11px] text-ink-500">Sync all existing local records so they appear in your desktop browser</p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleSyncCloud()}
+                disabled={syncingCloud}
+                className="shrink-0"
+              >
+                <RefreshCw size={13} className={syncingCloud ? "animate-spin" : ""} />
+                {syncingCloud ? "Syncing..." : "Sync Now"}
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 

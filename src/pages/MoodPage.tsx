@@ -66,7 +66,7 @@ export function MoodPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Mood Tracking"
-        subtitle="Check in with your feelings and observe emotional patterns"
+        subtitle="Check in with your feelings daily, log emotional triggers, and observe patterns over time."
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}

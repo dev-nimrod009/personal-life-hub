@@ -209,7 +209,7 @@ export function InsightsPage() {
 
   return (
     <div className="animate-fade-up pb-12">
-      <SectionHeader title="Local Insights" subtitle="Gentle patterns found in your own entries — calculated on this device only" />
+      <SectionHeader title="Local Insights" subtitle="Discover gentle patterns and trends across your writing, habits, and mood over time." />
 
       {/* Days in Life Hub & Journey Overview */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">

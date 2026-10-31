@@ -132,7 +132,7 @@ export function LearningPage() {
     <div className="animate-fade-up pb-12">
       <SectionHeader
         title="Learning &amp; Growth"
-        subtitle="Skills tracking, personal curriculum, 7-day experiments, and spaced repetition key ideas"
+        subtitle="Track skills you are developing, books you are reading, and 7-day personal experiments."
         action={
           <Button onClick={() => {
             setModalType(activeTab === "skills" ? "skill" : activeTab === "curriculum" ? "curriculum" : activeTab === "experiments" ? "experiment" : "idea");
