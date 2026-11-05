@@ -23,7 +23,7 @@ import type {
   BudgetItem,
 } from "./types";
 import { todayISO } from "./utils";
-import { localGet, localKeys, localRemove, localSet } from "./localdb";
+import { localGet, localSet } from "./localdb";
 
 type Row = Record<string, unknown>;
 

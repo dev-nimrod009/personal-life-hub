@@ -186,7 +186,7 @@ export function CompactNav({ active, onNavigate, onClose }: SidebarProps & { onC
   const modules = useEnabledModules();
 
   return (
-    <nav className="w-[85vw] max-w-[280px] max-h-[calc(100vh-64px)] overflow-y-auto p-2 overscroll-behavior-contain scrollbar-hide">
+    <nav className="w-[85vw] max-w-[280px] max-h-[calc(100vh-64px)] overflow-y-auto p-2 overscroll-contain scrollbar-hide">
       <div className="flex items-center justify-between px-2 mb-3">
         <span className="font-semibold text-ink-600 text-sm">Menu</span>
         <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-cream-100 text-ink-500">

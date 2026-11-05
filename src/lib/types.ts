@@ -123,14 +123,6 @@ export interface SavedQuote {
   created_at: string;
 }
 
-export interface GoalStep {
-  id: string;
-  goal_id: string;
-  title: string;
-  done: boolean;
-  created_at: string;
-}
-
 export interface Profile {
   id: string;
   email: string;

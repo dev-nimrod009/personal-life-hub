@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, Plus, Trash2, Search, ArrowLeft, Check, Sparkles } from "lucide-react";
+import { BookOpen, Plus, Trash2, Search, ArrowLeft, Check } from "lucide-react";
 import { listJournal, upsertJournal, deleteJournal } from "../lib/data";
 import type { JournalEntry } from "../lib/types";
 import { Button, EmptyState, Input, SectionHeader } from "../components/ui";
