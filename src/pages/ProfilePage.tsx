@@ -25,6 +25,7 @@ import {
 } from "../lib/data";
 import { backupToFile, restoreFromText } from "../lib/backup";
 import { useAuth } from "../lib/auth";
+import { supabase } from "../lib/supabase";
 import type { Profile } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
 import { clearLocalData, getStoredValue, setStoredValue } from "../lib/storage";
@@ -134,6 +135,8 @@ export function ProfilePage() {
   const [pinError, setPinError] = useState("");
   const [pinSuccess, setPinSuccess] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -325,6 +328,21 @@ export function ProfilePage() {
         setRestoring(false);
       }
     })();
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError("");
+    const { error: deleteFailure } = await supabase.functions.invoke("delete-account");
+    if (deleteFailure) {
+      setDeleteError("Account deletion failed. Check your connection and try again. Nothing on this device was erased.");
+      setDeleting(false);
+      return;
+    }
+    clearLocalData();
+    setDeleting(false);
+    setDeleteConfirmOpen(false);
+    void signOut();
   };
 
   const initials = getInitials(form.full_name || user?.email);
@@ -692,21 +710,20 @@ export function ProfilePage() {
       <Modal open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Delete Account & Local Data">
         <div className="space-y-4 text-sm text-ink-700">
           <p className="leading-relaxed">
-            This will permanently delete all your journals, diary entries, habits, budgets, and local data from this device. This action cannot be undone.
+            This permanently deletes your journals, diary entries, habits, budgets, and other data from your cloud account and from this device. Your sign-in account will also be removed. This action cannot be undone.
           </p>
+          {deleteError && <div className="rounded-xl bg-rose-soft-100 text-rose-soft-600 text-xs px-3 py-2">{deleteError}</div>}
           <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
-            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmOpen(false)}>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmOpen(false)} disabled={deleting}>
               Cancel
             </Button>
             <Button
               variant="danger"
               size="sm"
-              onClick={() => {
-                clearLocalData();
-                void signOut();
-              }}
+              onClick={() => void handleDeleteAccount()}
+              disabled={deleting}
             >
-              Permanently Delete
+              {deleting ? "Deleting..." : "Permanently Delete"}
             </Button>
           </div>
         </div>
