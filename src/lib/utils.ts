@@ -5,8 +5,7 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-export function todayISO(): string {
-  const d = new Date();
+export function todayISO(d: Date = new Date()): string {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -53,4 +52,3 @@ export function getInitials(nameOrEmail?: string | null): string {
   }
   return trimmed.slice(0, 2).toUpperCase();
 }
-

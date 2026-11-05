@@ -40,7 +40,7 @@ export function CyclePage() {
       {
         id: Date.now().toString(),
         startDate: form.startDate,
-        cycleLength: Number(form.cycleLength) || 28,
+        cycleLength: Math.min(45, Math.max(21, Number(form.cycleLength) || 28)),
         symptoms: form.symptoms.trim(),
         notes: form.notes.trim(),
       },
@@ -56,9 +56,10 @@ export function CyclePage() {
   const latest = logs[0];
   const nextPeriod = latest
     ? (() => {
-        const d = new Date(latest.startDate);
+        const [year, month, day] = latest.startDate.split("-").map(Number);
+        const d = new Date(year, month - 1, day);
         d.setDate(d.getDate() + latest.cycleLength);
-        return d.toISOString().slice(0, 10);
+        return todayISO(d);
       })()
     : null;
 
