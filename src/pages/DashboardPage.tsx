@@ -184,7 +184,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
         meal_type: mealForm.meal_type,
         name: mealForm.name.trim(),
         notes: mealForm.notes.trim(),
-        cost: mealForm.cost ? Number(mealForm.cost) : 0,
+        cost: mealForm.cost ? Math.max(0, Number(mealForm.cost)) : 0,
       });
       setMealModalOpen(false);
       setMealForm({ meal_type: "Lunch", name: "", notes: "", cost: "" });

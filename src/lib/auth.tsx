@@ -348,10 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setOfflineAccess(false);
             return { error: null };
           }
-          const cachedUser = readOfflineUser() ?? { id: "local-user", email: "offline@lifehub.local" };
-          setUser(cachedUser);
-          setOfflineAccess(true);
-          return { error: null };
+          return { error: "Your session has expired. Please sign in with your password." };
         }
       }
       return { error: "Biometric unlock canceled. Please enter your PIN or password." };
@@ -433,10 +430,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOfflineAccess(false);
         return true;
       }
-      const cached = readOfflineUser() ?? { id: "local-user", email: "offline@lifehub.local" };
-      setUser(cached);
-      setOfflineAccess(true);
-      return true;
+      return false;
     }
     return false;
   };

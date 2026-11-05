@@ -1,5 +1,6 @@
 import { fetchAllRows, importRows } from "./data";
 import { getStoredValue, setStoredValue } from "./storage";
+import { todayISO } from "./utils";
 import type { Row } from "./backupTypes";
 
 const BACKUP_TABLES = [
@@ -160,7 +161,7 @@ export async function exportMarkdownFile(): Promise<number> {
   section("Budget", [...d.budget_items].sort(byField("item_date")), (r) =>
     `- ${str(r.item_date)} ${r.kind === "income" ? "+" : "-"}KES ${str(r.amount)} ${str(r.category)}${r.note ? ` — ${str(r.note)}` : ""}`
   );
-  download(out.join("\n"), "text/markdown;charset=utf-8", `life-hub-export-${new Date().toISOString().slice(0, 10)}.md`);
+  download(out.join("\n"), "text/markdown;charset=utf-8", `life-hub-export-${todayISO()}.md`);
   return count;
 }
 
@@ -168,6 +169,6 @@ export async function exportBudgetCsv(): Promise<number> {
   const rows = [...(await fetchAllRows("budget_items").catch(() => []))].sort(byField("item_date"));
   const esc = (v: unknown) => `"${str(v).replace(/"/g, '""')}"`;
   const lines = ["date,type,category,amount,note", ...rows.map((r) => [r.item_date, r.kind, r.category, r.amount, r.note].map(esc).join(","))];
-  download(lines.join("\n"), "text/csv;charset=utf-8", `life-hub-budget-${new Date().toISOString().slice(0, 10)}.csv`);
+  download(lines.join("\n"), "text/csv;charset=utf-8", `life-hub-budget-${todayISO()}.csv`);
   return rows.length;
 }

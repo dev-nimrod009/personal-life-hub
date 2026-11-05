@@ -619,7 +619,7 @@ export function ProfilePage() {
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) doRestore(file);
+                    if (file && window.confirm("Restore this backup? Items from the file will be added to your account.")) doRestore(file);
                     e.target.value = "";
                   }}
                 />
