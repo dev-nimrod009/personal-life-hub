@@ -30,6 +30,8 @@ const OFFLINE_USER_KEY = "lifehub:offline-user";
 const LAST_ACTIVITY_KEY = "lifehub:last-activity";
 const LOCKED_KEY = "lifehub:locked";
 const AUTOLOCK_KEY = "lifehub:autolock";
+const PIN_HASH_PREFIX = "pbkdf2$";
+const PIN_HASH_ITERATIONS = 210000;
 
 function idleTimeoutMs(): number {
   const minutes = Number(getStoredValue(AUTOLOCK_KEY));
@@ -41,16 +43,6 @@ function isLocked(): boolean {
     getStoredValue(LOCKED_KEY) === "1" &&
     (Boolean(getStoredValue(PIN_KEY)) || Boolean(getStoredValue(PASSKEY_FLAG)))
   );
-}
-
-// Offline accounts keep one id per email so their data and profile survive signing in again.
-function localUserFor(email: string): { id: string; email: string } {
-  const normalized = email.trim().toLowerCase();
-  const cached = readOfflineUser();
-  if (cached?.id.startsWith("local-") && (cached.email ?? "").toLowerCase() === normalized) {
-    return { id: cached.id, email };
-  }
-  return { id: `local-${normalized}`, email };
 }
 
 function readOfflineUser(): Pick<User, "id" | "email"> | null {
@@ -72,12 +64,37 @@ function readOfflineUser(): Pick<User, "id" | "email"> | null {
   }
 }
 
-async function hashPin(pin: string): Promise<string> {
-  const data = new TextEncoder().encode(pin);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+function fromHex(hex: string): Uint8Array {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+
+async function derivePinHash(pin: string, salt: Uint8Array): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: salt as BufferSource, iterations: PIN_HASH_ITERATIONS },
+    key,
+    256
+  );
+  return new Uint8Array(bits);
+}
+
+async function hashPin(pin: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hash = await derivePinHash(pin, salt);
+  return `${PIN_HASH_PREFIX}${toHex(salt)}$${toHex(hash)}`;
+}
+
+async function legacyPinHash(pin: string): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin));
+  return toHex(new Uint8Array(hash));
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -244,13 +261,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       removeStoredValue(LOCKED_KEY);
       setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
       lockedSessionRef.current = null;
-      if (!isSupabaseConfigured) {
-        const localUser = localUserFor(email);
-        setUser(localUser);
-        setOfflineAccess(true);
-        setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
-        return { error: null };
-      }
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) return { error: error.message };
       if (data.session) {
@@ -262,15 +272,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setOfflineAccess(false);
       return { error: null };
     } catch (error) {
-      if (!isSupabaseConfigured || (error instanceof Error && error.message.toLowerCase().includes("fetch"))) {
-        removeStoredValue(LOCKED_KEY);
-        setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
-        lockedSessionRef.current = null;
-        const localUser = localUserFor(email);
-        setUser(localUser);
-        setOfflineAccess(true);
-        setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
-        return { error: null };
+      if (error instanceof Error && error.message.toLowerCase().includes("fetch")) {
+        return { error: "No internet connection. Create your account when you are online." };
       }
       return { error: error instanceof Error ? error.message : "Account creation failed." };
     }
@@ -278,16 +281,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
-      if (!isSupabaseConfigured) {
-        removeStoredValue(LOCKED_KEY);
-        setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
-        lockedSessionRef.current = null;
-        const localUser = localUserFor(email);
-        setUser(localUser);
-        setOfflineAccess(true);
-        setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
-        return { error: null };
-      }
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { error: error.message };
       removeStoredValue(LOCKED_KEY);
@@ -304,15 +297,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return { error: null };
     } catch (error) {
-      if (!isSupabaseConfigured || (error instanceof Error && error.message.toLowerCase().includes("fetch"))) {
-        removeStoredValue(LOCKED_KEY);
-        setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
-        lockedSessionRef.current = null;
-        const localUser = localUserFor(email);
-        setUser(localUser);
-        setOfflineAccess(true);
-        setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
-        return { error: null };
+      if (error instanceof Error && error.message.toLowerCase().includes("fetch")) {
+        return { error: "No internet connection. Sign in again when you are online." };
       }
       return { error: error instanceof Error ? error.message : "Sign-in failed." };
     }
@@ -506,6 +492,13 @@ export function useAuth(): AuthState {
 export async function verifyLocalPin(pin: string): Promise<boolean> {
   const stored = getStoredValue(PIN_KEY);
   if (!stored) return false;
-  const hash = await hashPin(pin);
-  return hash === stored;
+  if (stored.startsWith(PIN_HASH_PREFIX)) {
+    const [saltHex, hashHex] = stored.slice(PIN_HASH_PREFIX.length).split("$");
+    if (!saltHex || !hashHex) return false;
+    const hash = await derivePinHash(pin, fromHex(saltHex));
+    return toHex(hash) === hashHex;
+  }
+  const matches = (await legacyPinHash(pin)) === stored;
+  if (matches) setStoredValue(PIN_KEY, await hashPin(pin));
+  return matches;
 }
