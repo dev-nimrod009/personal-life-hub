@@ -3,7 +3,7 @@ import { Bell, Plus, CheckCircle2, Circle, Trash2, Calendar, Clock, Pencil } fro
 import { listReminders, upsertReminder, setReminderDone, deleteReminder } from "../lib/data";
 import type { Reminder } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
-import { formatDay } from "../lib/utils";
+import { formatDay, todayISO } from "../lib/utils";
 
 export function RemindersPage() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -51,7 +51,7 @@ export function RemindersPage() {
     if (reminder.due_at) {
       const d = new Date(reminder.due_at);
       if (!isNaN(d.getTime())) {
-        setDueDate(d.toISOString().slice(0, 10));
+        setDueDate(todayISO(d));
         setDueTime(d.toTimeString().slice(0, 5));
       } else {
         setDueDate("");

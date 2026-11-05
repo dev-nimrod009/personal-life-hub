@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, Plus, Trash2, CheckCircle2, Bookmark, Sparkles } from "lucide-react";
 import { getStoredValue, setStoredValue } from "../lib/storage";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
+import { todayISO } from "../lib/utils";
 
 interface SkillItem {
   id: string;
@@ -71,7 +72,7 @@ export function LearningPage() {
     try {
       const i = getStoredValue("lifehub:spaced_ideas");
       return i ? JSON.parse(i) : [
-        { id: "1", idea: "Simplicity is the ultimate sophistication.", nextReview: new Date().toISOString().slice(0, 10), interval: 3 },
+        { id: "1", idea: "Simplicity is the ultimate sophistication.", nextReview: todayISO(), interval: 3 },
       ];
     } catch {
       return [];
@@ -119,10 +120,10 @@ export function LearningPage() {
       setExpForm({ hypothesis: "", result: "", status: "Running" });
     } else if (modalType === "idea") {
       if (!ideaForm.idea.trim()) return;
-      const days = Number(ideaForm.interval) || 3;
+      const days = Math.min(365, Math.max(1, Number(ideaForm.interval) || 3));
       const nextDate = new Date();
       nextDate.setDate(nextDate.getDate() + days);
-      setIdeas([...ideas, { id: Date.now().toString(), idea: ideaForm.idea.trim(), nextReview: nextDate.toISOString().slice(0, 10), interval: days }]);
+      setIdeas([...ideas, { id: Date.now().toString(), idea: ideaForm.idea.trim(), nextReview: todayISO(nextDate), interval: days }]);
       setIdeaForm({ idea: "", interval: "3" });
     }
     setModalOpen(false);
@@ -336,7 +337,7 @@ export function LearningPage() {
               </div>
               <div>
                 <Label>Review Interval (days)</Label>
-                <Input type="number" min={1} value={ideaForm.interval} onChange={(e) => setIdeaForm({ ...ideaForm, interval: e.target.value })} />
+                <Input type="number" min={1} max={365} value={ideaForm.interval} onChange={(e) => setIdeaForm({ ...ideaForm, interval: e.target.value })} />
               </div>
             </>
           )}

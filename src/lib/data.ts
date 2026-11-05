@@ -796,7 +796,10 @@ export async function updateMeal(id: string, changes: Partial<Omit<Meal, "id">>)
     table: "meals",
     kind: "update",
     row: { id },
-    changes,
+    changes: {
+      ...changes,
+      ...(changes.cost !== undefined ? { cost: changes.cost && changes.cost > 0 ? changes.cost : null } : {}),
+    },
   });
 }
 
