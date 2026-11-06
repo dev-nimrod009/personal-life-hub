@@ -32,7 +32,7 @@ import { useAuth } from "../lib/auth";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { useEnabledModules } from "../components/nav";
 import { Button, Input, Label, Modal } from "../components/ui";
-import { formatDay, isNonNegativeAmount, todayISO } from "../lib/utils";
+import { dateKeyOf, formatDay, isNonNegativeAmount, todayISO } from "../lib/utils";
 import { MOOD_LEVELS } from "./MoodPage";
 
 const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
@@ -85,7 +85,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
           user ? getProfile(user.id, user.email ?? undefined) : Promise.resolve(null),
         ]);
       setTasks(allTasks.filter((t) => t.plan_date === today));
-      setReminders(allReminders.filter((x) => !x.done).slice(0, 5));
+      setReminders(allReminders.filter((x) => !x.done && x.due_at && dateKeyOf(x.due_at) <= today).slice(0, 5));
       setHabits(habitsList);
       setLogs(logsList);
       if (latestMoods[0]) setMoods([latestMoods[0]]);

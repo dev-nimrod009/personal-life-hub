@@ -18,6 +18,7 @@ export function RemindersPage() {
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const load = async () => {
     try {
@@ -36,6 +37,7 @@ export function RemindersPage() {
   }, []);
 
   const openNew = () => {
+    setSaveError("");
     setEditingId(null);
     setTitle("");
     setNotes("");
@@ -45,6 +47,7 @@ export function RemindersPage() {
   };
 
   const openEdit = (reminder: Reminder) => {
+    setSaveError("");
     setEditingId(reminder.id);
     setTitle(reminder.title);
     setNotes(reminder.notes || "");
@@ -70,7 +73,7 @@ export function RemindersPage() {
     try {
       let due_at: string | null = null;
       if (dueDate) {
-        due_at = dueTime ? `${dueDate}T${dueTime}:00` : `${dueDate}T12:00:00`;
+        due_at = new Date(`${dueDate}T${dueTime || "12:00"}:00`).toISOString();
       }
       await upsertReminder({
         id: editingId ?? undefined,
@@ -81,7 +84,7 @@ export function RemindersPage() {
       setModalOpen(false);
       await load();
     } catch {
-      setError("Could not save reminder.");
+      setSaveError("Could not save reminder. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -282,6 +285,8 @@ export function RemindersPage() {
               placeholder="Context, links, or instructions..."
             />
           </div>
+
+          {saveError && <div className="rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{saveError}</div>}
 
           <div className="flex items-center justify-between pt-2">
             {editingId ? (
