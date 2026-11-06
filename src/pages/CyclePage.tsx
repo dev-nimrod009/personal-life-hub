@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Heart, Plus, Trash2, Calendar, Sparkles } from "lucide-react";
 import { getStoredValue, setStoredValue } from "../lib/storage";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
-import { formatDay, todayISO } from "../lib/utils";
+import { formatDay, isWholeNumberInRange, todayISO } from "../lib/utils";
 
 interface CycleLog {
   id: string;
@@ -35,12 +35,12 @@ export function CyclePage() {
   }, [logs]);
 
   const add = () => {
-    if (!form.startDate) return;
+    if (!form.startDate || !isWholeNumberInRange(form.cycleLength, 21, 45)) return;
     setLogs([
       {
         id: Date.now().toString(),
         startDate: form.startDate,
-        cycleLength: Math.min(45, Math.max(21, Number(form.cycleLength) || 28)),
+        cycleLength: Number(form.cycleLength),
         symptoms: form.symptoms.trim(),
         notes: form.notes.trim(),
       },
@@ -136,7 +136,7 @@ export function CyclePage() {
             />
           </div>
           <div>
-            <Label>Average Cycle Length (Days)</Label>
+            <Label>Average Cycle Length (21 to 45 days)</Label>
             <Input
               type="number"
               min={21}
@@ -164,7 +164,7 @@ export function CyclePage() {
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button size="sm" onClick={add}>Save log</Button>
+            <Button size="sm" onClick={add} disabled={!form.startDate || !isWholeNumberInRange(form.cycleLength, 21, 45)}>Save log</Button>
           </div>
         </div>
       </Modal>

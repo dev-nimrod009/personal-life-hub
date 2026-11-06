@@ -3,7 +3,7 @@ import { Sparkles, ShieldCheck, Droplets, Smile, CheckCircle2, Wallet, BookOpen,
 import type { LucideIcon } from "lucide-react";
 import { listWater, listMoods, listHabitLogs, listJournal, listDiary, listBudgetItems, listGratitude } from "../lib/data";
 import { EmptyState, SectionHeader } from "../components/ui";
-import { todayISO } from "../lib/utils";
+import { dateKeyOf, todayISO } from "../lib/utils";
 
 interface Insight {
   icon: LucideIcon;
@@ -50,7 +50,7 @@ export function InsightsPage() {
         // Compute Days in Life Hub across all features
         const activeDays = new Set<string>([
           ...diary.map((d) => d.entry_date),
-          ...journals.map((j) => (j.created_at || "").slice(0, 10)),
+          ...journals.map((j) => dateKeyOf(j.created_at || "")),
           ...habitLogs.map((l) => l.log_date),
           ...moods.map((m) => m.mood_date),
           ...water.filter((w) => w.glasses > 0).map((w) => w.intake_date),
@@ -154,7 +154,7 @@ export function InsightsPage() {
         // Writing rhythm
         const since30 = daysAgoISO(30);
         const writingDays = new Set([
-          ...journals.map((j) => (j.created_at ?? "").slice(0, 10)).filter((d) => d >= since30),
+          ...journals.map((j) => dateKeyOf(j.created_at ?? "")).filter((d) => d >= since30),
           ...diary.map((d) => d.entry_date).filter((d) => d >= since30),
         ]);
         if (writingDays.size > 0) {

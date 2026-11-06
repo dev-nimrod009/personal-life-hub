@@ -36,7 +36,7 @@ import {
 } from "../lib/data";
 import type { Meal, Recipe, MealLibraryItem, PantryItem, ShoppingItem } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
-import { todayISO, formatDay, cn } from "../lib/utils";
+import { isNonNegativeAmount, todayISO, formatDay, cn } from "../lib/utils";
 
 export type MealTab = "week" | "library" | "recipes" | "pantry" | "shopping";
 
@@ -781,7 +781,7 @@ export function MealsPage({
             <Button variant="secondary" onClick={() => setMealModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddMeal} disabled={!newMeal.name.trim()}>
+            <Button onClick={handleAddMeal} disabled={!newMeal.name.trim() || !isNonNegativeAmount(newMeal.cost)}>
               Add to Schedule
             </Button>
           </div>
@@ -869,7 +869,7 @@ export function MealsPage({
             <Button variant="secondary" onClick={() => setLibraryModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddLib} disabled={!newLibItem.name.trim()}>
+            <Button onClick={handleAddLib} disabled={!newLibItem.name.trim() || !isNonNegativeAmount(newLibItem.default_cost)}>
               Save to Library
             </Button>
           </div>
@@ -1003,7 +1003,7 @@ export function MealsPage({
             <Button variant="secondary" onClick={() => setShoppingModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddShopping} disabled={!newShopping.name.trim()}>
+            <Button onClick={handleAddShopping} disabled={!newShopping.name.trim() || !isNonNegativeAmount(newShopping.est_cost)}>
               Add to List
             </Button>
           </div>

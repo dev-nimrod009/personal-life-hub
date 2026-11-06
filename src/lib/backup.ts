@@ -1,6 +1,6 @@
 import { fetchAllRows, importRows } from "./data";
 import { getStoredValue, setStoredValue } from "./storage";
-import { todayISO } from "./utils";
+import { dateKeyOf, todayISO } from "./utils";
 import type { Row } from "./backupTypes";
 
 const BACKUP_TABLES = [
@@ -87,7 +87,7 @@ function download(content: string, type: string, filename: string): void {
 
 export async function backupToFile(onProgress?: (progress: BackupProgress) => void): Promise<BackupProgress> {
   const file = await createBackup(onProgress);
-  download(JSON.stringify(file, null, 2), "application/json", `life-hub-backup-${file.exported_at.slice(0, 10)}.json`);
+  download(JSON.stringify(file, null, 2), "application/json", `life-hub-backup-${todayISO()}.json`);
   const total = Object.values(file.data).reduce((sum, rows) => sum + rows.length, 0);
   return { backedUp: total, remaining: 0, total };
 }
@@ -148,7 +148,7 @@ export async function exportMarkdownFile(): Promise<number> {
     }
   };
   section("Journal", [...d.journal_entries].sort(byField("created_at")), (r) =>
-    `### ${str(r.title) || "Untitled"} (${str(r.created_at).slice(0, 10)})\n\n${str(r.content)}`
+    `### ${str(r.title) || "Untitled"} (${dateKeyOf(str(r.created_at))})\n\n${str(r.content)}`
   );
   section("Diary", [...d.diary_entries].sort(byField("entry_date")), (r) => `### ${str(r.entry_date)}\n\n${str(r.content)}`);
   section("Notes", d.notes.filter((r) => (r.category ?? "personal") !== "private" && !r.password_hash), (r) => `### ${str(r.title) || "Untitled"}\n\n${str(r.content)}`);

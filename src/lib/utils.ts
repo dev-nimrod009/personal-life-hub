@@ -15,9 +15,8 @@ export function todayISO(d: Date = new Date()): string {
 export function formatDay(dateStr?: string | null): string {
   if (!dateStr) return "";
   try {
-    const trimmed = dateStr.slice(0, 10);
-    const parts = trimmed.split("-");
-    if (parts.length === 3) {
+    const parts = dateStr.split("-");
+    if (parts.length === 3 && dateStr.length === 10) {
       const year = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10) - 1;
       const day = parseInt(parts[2], 10);
@@ -51,4 +50,52 @@ export function getInitials(nameOrEmail?: string | null): string {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
   return trimmed.slice(0, 2).toUpperCase();
+}
+
+export function localDateKey(d: Date): string {
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Consecutive days with any habit done, counting back from today (or yesterday if today isn't logged yet).
+export function consecutiveDayStreak(doneDates: Set<string>): number {
+  if (doneDates.size === 0) return 0;
+  const d = new Date();
+  const todayKey = localDateKey(d);
+  const doneToday = doneDates.has(todayKey);
+  if (!doneToday) {
+    d.setDate(d.getDate() - 1);
+  }
+  let count = 0;
+  while (doneDates.has(localDateKey(d))) {
+    count++;
+    d.setDate(d.getDate() - 1);
+    if (count >= 365) break;
+  }
+  return count;
+}
+
+export function isWholeNumberInRange(value: string, min: number, max: number): boolean {
+  const n = Number(value);
+  return value.trim() !== "" && Number.isInteger(n) && n >= min && n <= max;
+}
+
+export function isNonNegativeAmount(value: string): boolean {
+  if (value.trim() === "") return true;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0;
+}
+
+export function dateKeyOf(timestamp: string): string {
+  return localDateKey(new Date(timestamp));
+}
+
+export function isValidAvatarLink(value: string): boolean {
+  const v = value.trim();
+  if (!v.startsWith("http")) return true;
+  try {
+    return new URL(v).protocol === "https:";
+  } catch {
+    return false;
+  }
 }

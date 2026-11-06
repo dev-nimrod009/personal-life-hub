@@ -9,12 +9,16 @@ import {
   upsertJournal,
 } from "../lib/data";
 import { Button, Input, Label, SectionHeader, Textarea } from "../components/ui";
+import type { JournalEntry } from "../lib/types";
+
+const reviewTitle = (year: number) => `Yearly Life Review (${year})`;
 
 export function YearlyReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savedEntry, setSavedEntry] = useState<JournalEntry | null>(null);
 
   const [stats, setStats] = useState({
     totalJournals: 0,
@@ -60,6 +64,7 @@ export function YearlyReviewPage() {
         totalGoals: goals.length,
       });
       setError("");
+      setSavedEntry(journals.find((j) => j.title === reviewTitle(new Date().getFullYear())) ?? null);
     } catch {
       setError("Could not load year-end insights.");
     } finally {
@@ -77,13 +82,14 @@ export function YearlyReviewPage() {
       const year = new Date().getFullYear();
       const content = `Yearly Life Review — ${year}\n\n🌟 Highlights & Wins:\n${form.highlights || "A year of quiet growth and steady presence."}\n\n🧗 Struggles & Resilience:\n${form.struggles || "Navigated challenges with patience."}\n\n🎯 Major Goal Progress:\n${form.goalProgress || `Completed ${stats.goalsDone} of ${stats.totalGoals} goals.`}\n\n💡 Key Lessons Learned:\n${form.lessons || "Simplicity, consistency, and kindness matter most."}\n\n✨ What I want next year to feel like:\n${form.feelNextYear || "Calm, purposeful, and deeply connected."}`;
       await upsertJournal({
-        title: `Yearly Life Review (${year})`,
+        id: savedEntry?.id,
+        title: reviewTitle(year),
         content,
-        mood: "inspired",
+        mood: savedEntry?.mood || "calm",
       });
-      setSuccess("Yearly review saved successfully as a special Journal entry!");
+      setSuccess(savedEntry ? "Yearly review replaced in your Journal." : "Yearly review saved to your Journal.");
       window.setTimeout(() => setSuccess(""), 4000);
-      setForm({ highlights: "", struggles: "", goalProgress: "", lessons: "", feelNextYear: "" });
+      void load();
     } catch {
       setError("Could not save yearly review.");
     } finally {
@@ -183,7 +189,7 @@ export function YearlyReviewPage() {
             />
           </div>
           <Button onClick={() => void saveYearlyReview()} disabled={saving} className="w-full">
-            <Plus size={16} /> Save Yearly Review to Journal
+            <Plus size={16} /> {savedEntry ? "Replace This Year's Review" : "Save Yearly Review to Journal"}
           </Button>
         </section>
       )}

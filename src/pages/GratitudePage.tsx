@@ -3,7 +3,7 @@ import { Sparkles, Plus, Trash2, Calendar, Heart } from "lucide-react";
 import { listGratitude, addGratitude, deleteGratitude } from "../lib/data";
 import type { GratitudeEntry } from "../lib/types";
 import { Button, EmptyState, Label, Modal, SectionHeader, Textarea } from "../components/ui";
-import { formatDay, todayISO } from "../lib/utils";
+import { consecutiveDayStreak, formatDay, todayISO } from "../lib/utils";
 
 export function GratitudePage() {
   const [entries, setEntries] = useState<GratitudeEntry[]>([]);
@@ -17,7 +17,6 @@ export function GratitudePage() {
   const load = async () => {
     try {
       setEntries(await listGratitude());
-      setError("");
     } catch {
       setError("Could not read gratitude notes from this device.");
     } finally {
@@ -56,6 +55,7 @@ export function GratitudePage() {
 
   const todayCount = entries.filter((e) => e.entry_date === todayISO()).length;
   const total = entries.length;
+  const streak = consecutiveDayStreak(new Set(entries.map((e) => e.entry_date)));
 
   return (
     <div className="animate-fade-up">
@@ -97,7 +97,7 @@ export function GratitudePage() {
           {total} moment{total === 1 ? "" : "s"} of gratitude logged · {todayCount} today
         </p>
         <span className="text-xs text-sage-600 font-semibold flex items-center gap-1">
-          <Sparkles size={13} /> Daily streak active
+          <Sparkles size={13} /> {streak > 0 ? `${streak}-day streak` : "Start a streak today"}
         </span>
       </div>
 

@@ -32,7 +32,8 @@ import { useAuth } from "../lib/auth";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { useEnabledModules } from "../components/nav";
 import { Button, Input, Label, Modal } from "../components/ui";
-import { formatDay, todayISO } from "../lib/utils";
+import { formatDay, isNonNegativeAmount, todayISO } from "../lib/utils";
+import { MOOD_LEVELS } from "./MoodPage";
 
 const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 const MEAL_EMOJI: Record<string, string> = {
@@ -184,7 +185,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
         meal_type: mealForm.meal_type,
         name: mealForm.name.trim(),
         notes: mealForm.notes.trim(),
-        cost: mealForm.cost ? Math.max(0, Number(mealForm.cost)) : 0,
+        cost: mealForm.cost ? Number(mealForm.cost) : 0,
       });
       setMealModalOpen(false);
       setMealForm({ meal_type: "Lunch", name: "", notes: "", cost: "" });
@@ -354,7 +355,19 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
                   </span>
                 )}
               </div>
-              <span className="text-xs text-sage-600 font-medium hover:underline">Open Planner →</span>
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMealModalOpen(true);
+                  }}
+                >
+                  <Plus size={14} /> Add Today's Meal
+                </Button>
+                <span className="text-xs text-sage-600 font-medium hover:underline">Open Planner →</span>
+              </div>
             </div>
 
             {todayMeals.length === 0 ? (
@@ -398,7 +411,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
             <h3 className="text-xs font-semibold uppercase tracking-widest text-ink-500 mb-2">How are you feeling?</h3>
             {todayMood ? (
               <p className="text-sm text-ink-800">
-                You logged a mood of {todayMood.score}/5 today.
+                You logged a mood of {MOOD_LEVELS.find((l) => l.score === todayMood.score)?.label} ({todayMood.score}/5) today.
                 {todayMood.note && <span className="text-ink-500"> "{todayMood.note}"</span>}
               </p>
             ) : (
@@ -476,7 +489,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
             <Button variant="ghost" size="sm" onClick={() => setMealModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddMeal} disabled={mealSaving || !mealForm.name.trim()}>
+            <Button onClick={handleAddMeal} disabled={mealSaving || !mealForm.name.trim() || !isNonNegativeAmount(mealForm.cost)}>
               {mealSaving ? "Saving..." : "Add to Today"}
             </Button>
           </div>

@@ -58,7 +58,7 @@ export function WaterPage() {
     <div className="animate-fade-up">
       <SectionHeader
         title="Hydration Tracker"
-        subtitle="Track your daily water intake in milliliters to stay refreshed, focused, and energized."
+        subtitle="Track your daily water intake in glasses (1 glass = 250 ml) to stay refreshed, focused, and energized."
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
@@ -74,7 +74,7 @@ export function WaterPage() {
           <span className="text-xl sm:text-2xl font-normal text-ink-500">/ {goal} glasses</span>
         </h3>
         <p className="text-sm text-ink-500 mb-6">
-          {percentage >= 100 ? "🎉 Daily hydration target accomplished!" : `${percentage}% of your daily goal`}
+          {percentage >= 100 ? "🎉 Daily hydration target accomplished!" : `${percentage}% of your daily goal · ${glasses * 250} of ${goal * 250} ml`}
         </p>
 
         {/* Progress Bar */}
@@ -103,7 +103,7 @@ export function WaterPage() {
             disabled={saving}
             className="px-6 py-3 text-base shadow-sm"
           >
-            <Plus size={18} /> Drink 1 Glass (250ml)
+            <Plus size={18} /> Drink 1 glass (250 ml)
           </Button>
 
           <button
@@ -111,7 +111,7 @@ export function WaterPage() {
             onClick={() => void updateIntake(glasses + 2, goal)}
             disabled={saving}
             className="px-4 py-3 rounded-xl border border-cream-200 bg-white hover:bg-cream-100 text-ink-700 font-medium text-sm transition-colors shadow-xs"
-            title="+2 glasses (500ml bottle)"
+            title="+2 glasses (500 ml bottle)"
           >
             +2 (Bottle)
           </button>

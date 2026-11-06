@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, Plus, Trash2, CheckCircle2, Bookmark, Sparkles } from "lucide-react";
 import { getStoredValue, setStoredValue } from "../lib/storage";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
-import { todayISO } from "../lib/utils";
+import { isWholeNumberInRange, todayISO } from "../lib/utils";
 
 interface SkillItem {
   id: string;
@@ -119,8 +119,8 @@ export function LearningPage() {
       setExperiments([...experiments, { id: Date.now().toString(), hypothesis: expForm.hypothesis.trim(), result: expForm.result.trim(), status: expForm.status }]);
       setExpForm({ hypothesis: "", result: "", status: "Running" });
     } else if (modalType === "idea") {
-      if (!ideaForm.idea.trim()) return;
-      const days = Math.min(365, Math.max(1, Number(ideaForm.interval) || 3));
+      if (!ideaForm.idea.trim() || !isWholeNumberInRange(ideaForm.interval, 1, 365)) return;
+      const days = Number(ideaForm.interval);
       const nextDate = new Date();
       nextDate.setDate(nextDate.getDate() + days);
       setIdeas([...ideas, { id: Date.now().toString(), idea: ideaForm.idea.trim(), nextReview: todayISO(nextDate), interval: days }]);
@@ -344,7 +344,7 @@ export function LearningPage() {
 
           <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
             <Button variant="ghost" size="sm" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleSave}>Save</Button>
+            <Button size="sm" onClick={handleSave} disabled={modalType === "idea" && !isWholeNumberInRange(ideaForm.interval, 1, 365)}>Save</Button>
           </div>
         </div>
       </Modal>

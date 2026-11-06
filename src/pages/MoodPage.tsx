@@ -5,7 +5,7 @@ import type { Mood } from "../lib/types";
 import { Button, EmptyState, Input, Label, SectionHeader, Textarea } from "../components/ui";
 import { todayISO, formatDay } from "../lib/utils";
 
-const MOOD_LEVELS = [
+export const MOOD_LEVELS = [
   { score: 1, label: "Rough", emoji: "🌧️", desc: "Difficult day, heavy feelings", color: "bg-rose-soft-100 text-rose-soft-700 border-rose-soft-200" },
   { score: 2, label: "Low", emoji: "☁️", desc: "Low energy, a bit drained", color: "bg-clay-100 text-clay-700 border-clay-200" },
   { score: 3, label: "Okay", emoji: "⛅", desc: "Steady, balanced, calm", color: "bg-honey-100 text-honey-700 border-honey-200" },

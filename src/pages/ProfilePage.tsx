@@ -29,7 +29,7 @@ import { supabase } from "../lib/supabase";
 import type { Profile } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
 import { clearLocalData, getStoredValue, setStoredValue } from "../lib/storage";
-import { getInitials } from "../lib/utils";
+import { consecutiveDayStreak, getInitials, isValidAvatarLink, localDateKey } from "../lib/utils";
 
 const AVATAR_PRESETS = [
   { emoji: "🌿", label: "Leaf" },
@@ -42,29 +42,6 @@ const AVATAR_PRESETS = [
   { emoji: "🌻", label: "Sunflower" },
 ];
 
-
-function localDateKey(d: Date): string {
-  if (Number.isNaN(d.getTime())) return "";
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-// Consecutive days with any habit done, counting back from today (or yesterday if today isn't logged yet).
-function habitStreak(doneDates: Set<string>): number {
-  if (doneDates.size === 0) return 0;
-  const d = new Date();
-  const todayKey = localDateKey(d);
-  const doneToday = doneDates.has(todayKey);
-  if (!doneToday) {
-    d.setDate(d.getDate() - 1);
-  }
-  let count = 0;
-  while (doneDates.has(localDateKey(d))) {
-    count++;
-    d.setDate(d.getDate() - 1);
-    if (count >= 365) break;
-  }
-  return count;
-}
 
 function compressImage(file: File, maxSize = 512): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -177,7 +154,7 @@ export function ProfilePage() {
           journal: journalList.length,
           habits: habitsList.length,
           goals: goalsList.filter((g) => g.done).length,
-          streak: habitStreak(new Set(habitLogs.map((l) => l.log_date))),
+          streak: consecutiveDayStreak(new Set(habitLogs.map((l) => l.log_date))),
           daysActive: activeDays.size,
         });
         setError("");
@@ -190,6 +167,10 @@ export function ProfilePage() {
   }, [user]);
 
   const save = async () => {
+    if (!isValidAvatarLink(form.avatar_url)) {
+      setError("Your profile photo link must start with https://");
+      return;
+    }
     if (!user) return;
     setSaving(true);
     setSaved(false);

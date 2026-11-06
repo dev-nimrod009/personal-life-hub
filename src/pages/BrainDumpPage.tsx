@@ -3,7 +3,7 @@ import { Inbox, Plus, Trash2, ClipboardList, Notebook } from "lucide-react";
 import { listInbox, addInboxItem, deleteInboxItem, addDayPlannerTask, upsertNote } from "../lib/data";
 import type { InboxItem } from "../lib/types";
 import { Button, EmptyState, Label, Modal, SectionHeader, Textarea } from "../components/ui";
-import { formatDay, todayISO } from "../lib/utils";
+import { dateKeyOf, formatDay, todayISO } from "../lib/utils";
 
 export function BrainDumpPage() {
   const [items, setItems] = useState<InboxItem[]>([]);
@@ -16,7 +16,6 @@ export function BrainDumpPage() {
   const load = async () => {
     try {
       setItems(await listInbox());
-      setError("");
     } catch {
       setError("Could not read the inbox from this device.");
     } finally {
@@ -120,7 +119,7 @@ export function BrainDumpPage() {
                 <Button variant="secondary" size="sm" onClick={() => moveToNotes(item)}>
                   <Notebook size={12} /> Notepad
                 </Button>
-                <span className="ml-auto text-xs text-ink-500/70">{formatDay((item.created_at || todayISO()).slice(0, 10))}</span>
+                <span className="ml-auto text-xs text-ink-500/70">{formatDay(item.created_at ? dateKeyOf(item.created_at) : todayISO())}</span>
               </div>
             </li>
           ))}

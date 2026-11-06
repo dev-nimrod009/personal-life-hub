@@ -15,7 +15,7 @@ import {
   listMoods,
 } from "../lib/data";
 import type { SectionId } from "./nav";
-import { cn, formatDay } from "../lib/utils";
+import { cn, dateKeyOf, formatDay } from "../lib/utils";
 
 interface SearchResult {
   id: string;
@@ -64,10 +64,10 @@ async function loadEverything(): Promise<SearchResult[]> {
     safe(listMoods()),
   ]);
   return [
-    ...journal.map((e) => make("journal", "Journal", e.id, e.title, e.content, e.created_at?.slice(0, 10))),
+    ...journal.map((e) => make("journal", "Journal", e.id, e.title, e.content, (e.created_at ? dateKeyOf(e.created_at) : undefined))),
     ...diary.map((e) => make("diary", "Diary", e.id, "", e.content, e.entry_date)),
-    ...notes.filter((n) => n.category !== "Private" && !n.password_hash).map((n) => make("notes", "Notepad", n.id, n.title, n.content, n.created_at?.slice(0, 10))),
-    ...inbox.map((i) => make("braindump", "Brain Dump", i.id, "", i.content, i.created_at?.slice(0, 10))),
+    ...notes.filter((n) => n.category !== "Private" && !n.password_hash).map((n) => make("notes", "Notepad", n.id, n.title, n.content, (n.created_at ? dateKeyOf(n.created_at) : undefined))),
+    ...inbox.map((i) => make("braindump", "Brain Dump", i.id, "", i.content, (i.created_at ? dateKeyOf(i.created_at) : undefined))),
     ...quotes.map((q) => make("quotes", "Quote Vault", q.id, q.author ? `— ${q.author}` : "", q.text)),
     ...gratitude.map((g) => make("gratitude", "Gratitude", g.id, "", g.content, g.entry_date)),
     ...goals.map((g) => make("goals", "Goals", g.id, g.title, g.description ?? "")),
