@@ -27,11 +27,60 @@ const AuthContext = createContext<AuthState | null>(null);
 const PASSKEY_FLAG = "lifehub:has-passkey";
 const PIN_KEY = "lifehub:local-pin";
 const OFFLINE_USER_KEY = "lifehub:offline-user";
+const OFFLINE_CREDENTIALS_KEY = "lifehub:offline-credentials";
 const LAST_ACTIVITY_KEY = "lifehub:last-activity";
 const LOCKED_KEY = "lifehub:locked";
 const AUTOLOCK_KEY = "lifehub:autolock";
 const PIN_HASH_PREFIX = "pbkdf2$";
 const PIN_HASH_ITERATIONS = 210000;
+
+function looksOffline(e: unknown): boolean {
+  if (!e) return false;
+  const msg = typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : e instanceof Error ? e.message : String(e);
+  return (
+    (typeof navigator !== "undefined" && !navigator.onLine) ||
+    /fetch|network|load failed|timed? ?out|failed to fetch|err_name_not_resolved/i.test(msg)
+  );
+}
+
+interface StoredOfflineCredential {
+  email: string;
+  id: string;
+  hash: string;
+  salt: string;
+}
+
+function getStoredOfflineCredentials(): StoredOfflineCredential[] {
+  try {
+    const raw = getStoredValue(OFFLINE_CREDENTIALS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredOfflineCredential(cred: StoredOfflineCredential): void {
+  try {
+    const list = getStoredOfflineCredentials().filter((c) => c.email.toLowerCase() !== cred.email.toLowerCase());
+    list.push(cred);
+    setStoredValue(OFFLINE_CREDENTIALS_KEY, JSON.stringify(list));
+  } catch {
+    // storage fallback
+  }
+}
+
+async function hashPasswordOffline(password: string, existingSalt?: Uint8Array): Promise<{ hash: string; salt: string }> {
+  const salt = existingSalt || crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: salt as BufferSource, iterations: 100000 },
+    key,
+    256
+  );
+  return { hash: toHex(new Uint8Array(bits)), salt: toHex(salt) };
+}
 
 function idleTimeoutMs(): number {
   const minutes = Number(getStoredValue(AUTOLOCK_KEY));
@@ -257,51 +306,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, offlineAccess]);
 
   const signUp = async (email: string, password: string): Promise<{ error: string | null }> => {
-    try {
-      removeStoredValue(LOCKED_KEY);
-      setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
-      lockedSessionRef.current = null;
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) return { error: error.message };
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-      } else {
-        setUser((await supabase.auth.getUser()).data.user ?? null);
-      }
-      setOfflineAccess(false);
-      return { error: null };
-    } catch (error) {
-      if (error instanceof Error && error.message.toLowerCase().includes("fetch")) {
-        return { error: "No internet connection. Create your account when you are online." };
-      }
-      return { error: error instanceof Error ? error.message : "Account creation failed." };
+    const normalizedEmail = email.trim().toLowerCase();
+    removeStoredValue(LOCKED_KEY);
+    setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+    lockedSessionRef.current = null;
+
+    // Check if offline credentials for this email already exist
+    const existingOffline = getStoredOfflineCredentials().find((c) => c.email.toLowerCase() === normalizedEmail);
+    if (existingOffline) {
+      return { error: "An account with this email already exists on this device. Please sign in." };
     }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.auth.signUp({ email: normalizedEmail, password });
+        if (!error && data?.user) {
+          if (data.session) {
+            setSession(data.session);
+            setUser(data.session.user);
+          } else {
+            setUser((await supabase.auth.getUser()).data.user ?? null);
+          }
+          setOfflineAccess(false);
+          const { hash, salt } = await hashPasswordOffline(password);
+          saveStoredOfflineCredential({ email: normalizedEmail, id: data.user.id, hash, salt });
+          setStoredValue(OFFLINE_USER_KEY, JSON.stringify({ id: data.user.id, email: normalizedEmail }));
+          return { error: null };
+        } else if (error && !looksOffline(error)) {
+          return { error: error.message };
+        }
+      } catch (err) {
+        if (!looksOffline(err)) {
+          return { error: err instanceof Error ? err.message : "Account creation failed." };
+        }
+      }
+    }
+
+    // Always create local offline account securely when cloud is absent, unreachable, or returns fetch error
+    const localId = `local-${normalizedEmail.replace(/[^a-z0-9]/g, "-")}`;
+    const { hash, salt } = await hashPasswordOffline(password);
+    saveStoredOfflineCredential({ email: normalizedEmail, id: localId, hash, salt });
+    const localUser = { id: localId, email: normalizedEmail };
+    setUser(localUser);
+    setSession(null);
+    setOfflineAccess(true);
+    setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { error: error.message };
-      removeStoredValue(LOCKED_KEY);
-      setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
-      lockedSessionRef.current = null;
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-        setOfflineAccess(false);
-        setStoredValue(
-          OFFLINE_USER_KEY,
-          JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
-        );
+    const normalizedEmail = email.trim().toLowerCase();
+    removeStoredValue(LOCKED_KEY);
+    setStoredValue(LAST_ACTIVITY_KEY, String(Date.now()));
+    lockedSessionRef.current = null;
+
+    // If cloud database is configured and online, attempt Supabase sign-in first
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+        if (!error && data?.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          setOfflineAccess(false);
+          setStoredValue(
+            OFFLINE_USER_KEY,
+            JSON.stringify({ id: data.session.user.id, email: data.session.user.email ?? null })
+          );
+          // Cache offline password hash so user can sign in completely offline anytime in the future
+          const { hash, salt } = await hashPasswordOffline(password);
+          saveStoredOfflineCredential({ email: normalizedEmail, id: data.session.user.id, hash, salt });
+          return { error: null };
+        }
+        // If wrong password / invalid credentials was reported by Supabase, reject immediately
+        if (error && !looksOffline(error)) {
+          return { error: error.message };
+        }
+      } catch (err) {
+        if (!looksOffline(err)) {
+          return { error: err instanceof Error ? err.message : "Sign-in failed." };
+        }
       }
-      return { error: null };
-    } catch (error) {
-      if (error instanceof Error && error.message.toLowerCase().includes("fetch")) {
-        return { error: "No internet connection. Sign in again when you are online." };
-      }
-      return { error: error instanceof Error ? error.message : "Sign-in failed." };
     }
+
+    // Offline authentication fallback: check locally stored credentials
+    const offlineCred = getStoredOfflineCredentials().find((c) => c.email.toLowerCase() === normalizedEmail);
+    if (offlineCred) {
+      const { hash } = await hashPasswordOffline(password, fromHex(offlineCred.salt));
+      if (hash === offlineCred.hash) {
+        const localUser = { id: offlineCred.id, email: normalizedEmail };
+        setUser(localUser);
+        setSession(null);
+        setOfflineAccess(true);
+        setStoredValue(OFFLINE_USER_KEY, JSON.stringify(localUser));
+        return { error: null };
+      }
+      return { error: "Invalid login credentials" };
+    }
+
+    // If no credentials found at all
+    return {
+      error: isSupabaseConfigured
+        ? "Invalid login credentials"
+        : "No account found with this email on this device. Click 'Create account' to get started.",
+    };
   };
 
   const embeddedCheck = (forSetup: boolean): string | null => {
