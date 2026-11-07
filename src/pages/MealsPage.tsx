@@ -268,16 +268,7 @@ export function MealsPage({
         title="Meal Planner"
         subtitle="Plan your weekly meals, estimate food costs in KES, and stay within your target budget."
         action={
-          activeTab === "week" ? (
-            <Button
-              onClick={() => {
-                setNewMeal({ meal_date: todayISO(), meal_type: "Lunch", name: "", notes: "", cost: "" });
-                setMealModal(true);
-              }}
-            >
-              <Plus size={16} /> Plan Meal
-            </Button>
-          ) : activeTab === "library" ? (
+          activeTab === "week" ? null : activeTab === "library" ? (
             <Button onClick={() => setLibraryModal(true)}>
               <Plus size={16} /> Add to Library
             </Button>
@@ -378,70 +369,53 @@ export function MealsPage({
           </div>
 
           {/* 7-Day Planner Grid */}
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             {weekDays.map(({ dateStr, dayName, formatted }) => {
               const dayMeals = currentWeekMeals.filter((m) => m.meal_date === dateStr);
-              const dayTotal = dayMeals.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
               const isToday = dateStr === todayISO();
 
               return (
                 <div
                   key={dateStr}
                   className={cn(
-                    "bg-white rounded-2xl border p-3 transition-all",
+                    "bg-white rounded-xl border p-2 flex flex-col transition-all",
                     isToday ? "border-sage-300 ring-1 ring-sage-200" : "border-cream-200"
                   )}
                 >
-                  <div className="flex items-center justify-between pb-2 border-b border-cream-100 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-semibold text-ink-800 text-base">
-                        {dayName}
-                      </span>
-                      <span className="text-xs text-ink-400">· {formatted}</span>
-                      {isToday && (
-                        <span className="text-[11px] font-medium text-sage-700 bg-sage-50 px-2 py-0.5 rounded-full border border-sage-200">
-                          Today
-                        </span>
-                      )}
+                  <div className="flex items-start justify-between gap-1 mb-1.5">
+                    <div className="min-w-0">
+                      <p className="font-display font-semibold text-sm text-ink-800 leading-tight">
+                        {dayName.slice(0, 3)}
+                        {isToday && <span className="ml-1 text-[10px] font-medium text-sage-600">Today</span>}
+                      </p>
+                      <p className="text-[11px] text-ink-400">{formatted}</p>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold text-ink-600">
-                        Day Total: KES {dayTotal.toLocaleString()}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setNewMeal({ meal_date: dateStr, meal_type: "Lunch", name: "", notes: "", cost: "" });
-                          setMealModal(true);
-                        }}
-                        className="text-xs px-2.5 py-1 h-auto"
-                      >
-                        <Plus size={12} /> Add
-                      </Button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewMeal({ meal_date: dateStr, meal_type: "Lunch", name: "", notes: "", cost: "" });
+                        setMealModal(true);
+                      }}
+                      className="w-7 h-7 shrink-0 rounded-lg bg-sage-600 text-white flex items-center justify-center hover:bg-sage-700 transition-colors"
+                      aria-label="Add meal"
+                    >
+                      <Plus size={14} />
+                    </button>
                   </div>
 
                   {dayMeals.length === 0 ? (
-                    <p className="text-xs text-ink-400 py-1 italic">No meals scheduled for this day.</p>
+                    <p className="text-[11px] text-ink-400">No meals</p>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    <div className="space-y-1">
                       {dayMeals.map((meal) => (
                         <div
                           key={meal.id}
-                          className="p-2.5 rounded-lg bg-cream-50/60 flex items-start justify-between gap-2 group"
+                          className="flex items-center justify-between gap-1 rounded-md bg-cream-50 px-1.5 py-1 group"
                         >
                           <div className="min-w-0">
-                            <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sage-100 text-sage-700 mb-1">
-                              {meal.meal_type}
-                            </span>
-                            <p className="text-sm font-semibold text-ink-800 truncate">{meal.name}</p>
-                            {meal.notes && (
-                              <p className="text-xs text-ink-500 truncate mt-0.5">{meal.notes}</p>
-                            )}
-                            <p className="text-xs font-bold text-ink-700 mt-1">
-                              KES {(Number(meal.cost) || 0).toLocaleString()}
+                            <p className="text-xs font-medium text-ink-800 truncate">{meal.name}</p>
+                            <p className="text-[10px] text-ink-500">
+                              {meal.meal_type} · KES {(Number(meal.cost) || 0).toLocaleString()}
                             </p>
                           </div>
 
@@ -479,18 +453,15 @@ export function MealsPage({
               hint="Save your favorite go-to meals here to quickly schedule them into your week."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {library.map((item) => (
                 <div
                   key={item.id}
                   className="bg-white rounded-xl border border-cream-200 px-3 py-2.5 flex items-center justify-between gap-2"
                 >
                   <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-cream-100 text-ink-600">
-                      {item.meal_type}
-                    </span>
-                    <p className="text-sm font-semibold text-ink-800">{item.name}</p>
-                    {item.notes && <p className="text-xs text-ink-500 mt-0.5">{item.notes}</p>}
+                    <p className="text-sm font-semibold text-ink-800 truncate">{item.name}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-ink-500">{item.meal_type}</p>
                     {item.default_cost > 0 && (
                       <p className="text-xs font-medium text-sage-700 mt-1">
                         Est. KES {item.default_cost.toLocaleString()}
