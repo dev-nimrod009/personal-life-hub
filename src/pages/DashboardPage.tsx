@@ -14,6 +14,7 @@ import {
 import {
   listDayPlanner,
   listReminders,
+  listQuotes,
   listHabits,
   listHabitLogs,
   listMoods,
@@ -30,6 +31,7 @@ import {
 import type { DayPlanTask, Habit, HabitLog, Mood, Reminder, WaterIntake, Profile, Meal } from "../lib/types";
 import { useAuth } from "../lib/auth";
 import { isSupabaseConfigured } from "../lib/supabase";
+import type { SavedQuote } from "../lib/types";
 import { useEnabledModules } from "../components/nav";
 import { Button, Input, Label, Modal } from "../components/ui";
 import { dateKeyOf, formatDay, isNonNegativeAmount, todayISO } from "../lib/utils";
@@ -49,6 +51,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [tasks, setTasks] = useState<DayPlanTask[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [quote, setQuote] = useState<SavedQuote | null>(null);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [moods, setMoods] = useState<Mood[]>([]);
@@ -69,6 +72,12 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
   const [mealSaving, setMealSaving] = useState(false);
 
   const today = todayISO();
+
+  useEffect(() => {
+    listQuotes()
+      .then((qs) => setQuote(qs.length ? qs[Math.floor(Math.random() * qs.length)] : null))
+      .catch(() => setQuote(null));
+  }, []);
 
   const load = async (withSkeleton = true) => {
     if (withSkeleton) setLoading(true);
@@ -228,10 +237,17 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
             </div>
           )}
 
+          {quote && (
+            <section className="sm:col-span-2 bg-sage-50 rounded-2xl border border-sage-200 p-4">
+              <p className="font-serif italic text-ink-800 text-base leading-relaxed">&ldquo;{quote.text}&rdquo;</p>
+              <p className="text-xs text-ink-500 mt-2">{quote.author || "Anonymous"}</p>
+            </section>
+          )}
+
           {/* Today's Plan */}
           <section
             hidden={modules.dayplans === false}
-            className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+            className="bg-white rounded-2xl border border-cream-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => onNavigate("dayplans")}
           >
             <div className="flex items-center gap-2 text-ink-500 mb-3">
@@ -255,7 +271,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
           {/* Upcoming Reminders */}
           <section
             hidden={modules.reminders === false}
-            className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+            className="bg-white rounded-2xl border border-cream-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => onNavigate("reminders")}
           >
             <div className="flex items-center gap-2 text-ink-500 mb-3">
@@ -278,7 +294,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
           {/* Habits Today */}
           <section
             hidden={modules.habits === false}
-            className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+            className="bg-white rounded-2xl border border-cream-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => onNavigate("habits")}
           >
             <div className="flex items-center gap-2 text-ink-500 mb-3">
@@ -313,7 +329,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
           {/* Water Tracker */}
           <section
             hidden={modules.water === false}
-            className="bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+            className="bg-white rounded-2xl border border-cream-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => onNavigate("water")}
           >
             <div className="flex items-center gap-2 text-ink-500 mb-3">
@@ -403,7 +419,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (id: string) => void
       {/* Mood Check-in Card */}
       <section
             hidden={modules.mood === false}
-        className="mt-3 bg-white rounded-2xl border border-cream-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+        className="mt-3 bg-white rounded-2xl border border-cream-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
         onClick={() => onNavigate("mood")}
       >
         <div className="flex items-center justify-between">
