@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Quote, Plus, Trash2, Sparkles, Bookmark, Share2 } from "lucide-react";
-import { listQuotes, addQuote, deleteQuote } from "../lib/data";
+import { Quote, Plus, Trash2, Sparkles, Bookmark, Share2, Pencil } from "lucide-react";
+import { listQuotes, addQuote, updateQuote, deleteQuote } from "../lib/data";
 import type { SavedQuote } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
 
@@ -17,6 +17,7 @@ export function QuoteVaultPage() {
   const [author, setAuthor] = useState("");
   const [kind, setKind] = useState("Wisdom");
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -34,11 +35,29 @@ export function QuoteVaultPage() {
     load();
   }, []);
 
+  const openNew = () => {
+    setEditingId(null);
+    setText("");
+    setAuthor("");
+    setKind("Wisdom");
+    setModalOpen(true);
+  };
+
+  const openEdit = (q: SavedQuote) => {
+    setEditingId(q.id);
+    setText(q.text);
+    setAuthor(q.author || "");
+    setKind(q.kind || "Wisdom");
+    setModalOpen(true);
+  };
+
   const save = async () => {
     if (!text.trim()) return;
     setSaving(true);
     try {
-      await addQuote(text.trim(), author.trim() || "Anonymous", kind);
+      const cleanAuthor = author.trim() || "Anonymous";
+      if (editingId) await updateQuote(editingId, text.trim(), cleanAuthor, kind);
+      else await addQuote(text.trim(), cleanAuthor, kind);
       setModalOpen(false);
       setText("");
       setAuthor("");
@@ -73,7 +92,7 @@ export function QuoteVaultPage() {
         title="Quote Vault"
         subtitle="Save inspiring quotes, uplifting book passages, and timeless words that ground you."
         action={
-          <Button onClick={() => setModalOpen(true)}>
+          <Button onClick={openNew}>
             <Plus size={16} /> Add Quote
           </Button>
         }
@@ -143,6 +162,14 @@ export function QuoteVaultPage() {
                   <span className="text-[11px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-cream-100 text-ink-600">
                     {q.kind || "Wisdom"}
                   </span>
+                  <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => openEdit(q)}
+                    className="opacity-0 group-hover:opacity-100 text-ink-400 hover:text-ink-700 transition-opacity p-1"
+                    title="Edit quote"
+                  >
+                    <Pencil size={15} />
+                  </button>
                   <button
                     onClick={() => void remove(q.id)}
                     className="opacity-0 group-hover:opacity-100 text-ink-400 hover:text-rose-soft-600 transition-opacity p-1"
@@ -150,6 +177,7 @@ export function QuoteVaultPage() {
                   >
                     <Trash2 size={15} />
                   </button>
+                  </div>
                 </div>
 
                 <p className="font-serif text-base sm:text-lg text-ink-800 leading-relaxed italic mb-4">
@@ -166,7 +194,7 @@ export function QuoteVaultPage() {
       )}
 
       {/* Add Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add to Quote Vault">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Edit Quote" : "Add to Quote Vault"}>
         <div className="space-y-4">
           <div>
             <Label>Quote Text</Label>

@@ -22,6 +22,8 @@ import {
   listGoals,
   listMoods,
   listWater,
+  getMealBudget,
+  setMealBudget,
 } from "../lib/data";
 import { backupToFile, restoreFromText } from "../lib/backup";
 import { useAuth } from "../lib/auth";
@@ -82,6 +84,7 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
   const [restoring, setRestoring] = useState(false);
   const [restoreResult, setRestoreResult] = useState<string>("");
@@ -94,6 +97,7 @@ export function ProfilePage() {
     location: "",
     birthday: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    meal_budget: "",
   });
   const [stats, setStats] = useState({
     diary: 0,
@@ -147,6 +151,7 @@ export function ProfilePage() {
             location: data.location ?? "",
             birthday: data.birthday ?? "",
             timezone: getStoredValue(`lifehub:timezone:${user.id}`) || getStoredValue("lifehub:timezone") || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+            meal_budget: String(getMealBudget(user.id)),
           });
         }
         setStats({
@@ -184,7 +189,9 @@ export function ProfilePage() {
       });
       setStoredValue(`lifehub:current-focus:${user.id}`, form.current_focus);
       setStoredValue(`lifehub:timezone:${user.id}`, form.timezone);
+      setMealBudget(Math.max(0, Number(form.meal_budget) || 0), user.id);
       setSaved(true);
+      setEditing(false);
       setError("");
       window.setTimeout(() => setSaved(false), 2500);
     } catch {
@@ -419,7 +426,46 @@ export function ProfilePage() {
 
           {/* Editable Personal Info */}
           <section className="bg-white rounded-2xl border border-cream-200 p-6 mb-6">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-ink-500 mb-4">Edit Personal Information</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-ink-500">Personal Information</h3>
+              {!editing && (
+                <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                  Edit
+                </Button>
+              )}
+            </div>
+            {!editing ? (
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                <div>
+                  <dt className="text-xs text-ink-500">Name</dt>
+                  <dd className="text-ink-800 font-medium">{form.full_name || "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-500">Current focus</dt>
+                  <dd className="text-ink-800 font-medium">{form.current_focus || "Not set"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-ink-500">Bio / motto</dt>
+                  <dd className="text-ink-800">{form.bio || "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-500">Location</dt>
+                  <dd className="text-ink-800">{form.location || "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-500">Birthday</dt>
+                  <dd className="text-ink-800">{form.birthday || "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-500">Timezone</dt>
+                  <dd className="text-ink-800">{form.timezone || "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-500">Weekly food budget</dt>
+                  <dd className="text-ink-800">KES {Number(form.meal_budget || 0).toLocaleString()}</dd>
+                </div>
+              </dl>
+            ) : (
             <div className="space-y-4">
               <div>
                 <Label>Profile photo or avatar</Label>
@@ -533,6 +579,17 @@ export function ProfilePage() {
                 </div>
               </div>
 
+              <div className="sm:w-1/3">
+                <Label>Weekly food budget (KES)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.meal_budget}
+                  onChange={(e) => setForm((prev) => ({ ...prev, meal_budget: e.target.value }))}
+                  placeholder="e.g. 5000"
+                />
+              </div>
+
               <div className="pt-2 flex items-center gap-3">
                 <Button onClick={save} disabled={saving}>
                   {saving ? "Saving..." : "Save profile"}
@@ -544,6 +601,7 @@ export function ProfilePage() {
                 )}
               </div>
             </div>
+            )}
           </section>
 
           {/* Shortcuts to Security */}

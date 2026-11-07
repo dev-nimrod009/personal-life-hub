@@ -937,6 +937,10 @@ export async function addQuote(text: string, author: string, kind: string): Prom
   await remoteOrQueue({ table: "saved_quotes", kind: "insert", row: { id: uid(), text, author, kind } });
 }
 
+export async function updateQuote(id: string, text: string, author: string, kind: string): Promise<void> {
+  await remoteOrQueue({ table: "saved_quotes", kind: "update", row: { id }, changes: { text, author, kind } });
+}
+
 export async function deleteQuote(id: string): Promise<void> {
   await remoteOrQueue({ table: "saved_quotes", kind: "delete", row: { id } });
 }

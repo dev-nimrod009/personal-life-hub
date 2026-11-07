@@ -10,10 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  Wallet,
-  Pencil,
 } from "lucide-react";
 import {
   listMeals,
@@ -32,7 +28,6 @@ import {
   addShoppingItem,
   deleteShoppingItem,
   getMealBudget,
-  setMealBudget,
 } from "../lib/data";
 import type { Meal, Recipe, MealLibraryItem, PantryItem, ShoppingItem } from "../lib/types";
 import { Button, EmptyState, Input, Label, Modal, SectionHeader, Textarea } from "../components/ui";
@@ -79,8 +74,6 @@ export function MealsPage({
   // Week navigation state
   const [currentMonday, setCurrentMonday] = useState(() => getMondayOfDate(new Date()));
   const [weeklyBudget, setWeeklyBudgetState] = useState(() => getMealBudget());
-  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
-  const [budgetInput, setBudgetInput] = useState(String(getMealBudget()));
 
   // Modals state
   const [mealModal, setMealModal] = useState(false);
@@ -162,8 +155,8 @@ export function MealsPage({
     return currentWeekMeals.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
   }, [currentWeekMeals]);
 
-  const budgetDifference = weeklyBudget - totalWeekSpent;
   const isOverBudget = totalWeekSpent > weeklyBudget;
+  const usagePercent = weeklyBudget > 0 ? Math.min(100, (totalWeekSpent / weeklyBudget) * 100) : 0;
 
   const shiftWeek = (delta: number) => {
     const next = new Date(currentMonday);
@@ -173,15 +166,6 @@ export function MealsPage({
 
   const jumpToCurrentWeek = () => {
     setCurrentMonday(getMondayOfDate(new Date()));
-  };
-
-  const handleSaveBudget = () => {
-    const val = Number(budgetInput);
-    if (Number.isFinite(val) && val >= 0) {
-      setMealBudget(val);
-      setWeeklyBudgetState(val);
-      setBudgetModalOpen(false);
-    }
   };
 
   const handleAddMeal = async () => {
@@ -346,73 +330,19 @@ export function MealsPage({
       ) : activeTab === "week" ? (
         /* Weekly Planner View */
         <div className="space-y-6">
-          {/* Week Budget & Spending Overview Card */}
-          <section className="bg-white rounded-2xl border border-cream-200 p-5 sm:p-6 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-cream-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sage-100 text-sage-600 flex items-center justify-center shrink-0">
-                  <Wallet size={20} />
-                </div>
-                <div>
-                  <h3 className="font-display font-semibold text-lg text-ink-800">Weekly Food Budget</h3>
-                  <p className="text-xs text-ink-500">Compare planned weekly meals against your budget</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setBudgetInput(String(weeklyBudget));
-                    setBudgetModalOpen(true);
-                  }}
-                  className="flex items-center gap-1.5 text-xs"
-                >
-                  <Pencil size={13} /> Set Budget
-                </Button>
-              </div>
+          {/* Weekly Food Budget Usage */}
+          <section className="bg-white rounded-2xl border border-cream-200 p-4">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-ink-600">Food budget this week</span>
+              <span className={cn("font-semibold", isOverBudget ? "text-rose-soft-600" : "text-ink-700")}>
+                KES {totalWeekSpent.toLocaleString()} of KES {weeklyBudget.toLocaleString()}
+              </span>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-              <div className="rounded-xl bg-cream-50/70 p-3.5 border border-cream-100">
-                <p className="text-xs text-ink-500 font-medium">Weekly Target Budget</p>
-                <p className="font-display text-xl font-bold text-ink-800 mt-0.5">
-                  KES {weeklyBudget.toLocaleString()}
-                </p>
-              </div>
-
-              <div className="rounded-xl bg-cream-50/70 p-3.5 border border-cream-100">
-                <p className="text-xs text-ink-500 font-medium">Total Planned Food Spent</p>
-                <p className={cn("font-display text-xl font-bold mt-0.5", isOverBudget ? "text-rose-soft-600" : "text-sage-700")}>
-                  KES {totalWeekSpent.toLocaleString()}
-                </p>
-              </div>
-
+            <div className="h-2 rounded-full bg-cream-100 overflow-hidden">
               <div
-                className={cn(
-                  "rounded-xl p-3.5 border flex items-center gap-3",
-                  isOverBudget
-                    ? "bg-rose-soft-100/50 border-rose-soft-200 text-rose-soft-700"
-                    : "bg-sage-50 border-sage-200 text-sage-700"
-                )}
-              >
-                {isOverBudget ? (
-                  <AlertCircle size={24} className="text-rose-soft-600 shrink-0" />
-                ) : (
-                  <CheckCircle size={24} className="text-sage-600 shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wider">
-                    {isOverBudget ? "Over Budget" : "Within Budget"}
-                  </p>
-                  <p className="text-xs mt-0.5 font-medium">
-                    {isOverBudget
-                      ? `Exceeded by KES ${Math.abs(budgetDifference).toLocaleString()}`
-                      : `KES ${budgetDifference.toLocaleString()} remaining`}
-                  </p>
-                </div>
-              </div>
+                className={cn("h-full rounded-full transition-all duration-500", isOverBudget ? "bg-rose-soft-500" : "bg-sage-500")}
+                style={{ width: `${usagePercent}%` }}
+              />
             </div>
           </section>
 
@@ -458,11 +388,11 @@ export function MealsPage({
                 <div
                   key={dateStr}
                   className={cn(
-                    "bg-white rounded-2xl border p-4 sm:p-5 transition-all",
+                    "bg-white rounded-2xl border p-3 transition-all",
                     isToday ? "border-sage-300 ring-1 ring-sage-200" : "border-cream-200"
                   )}
                 >
-                  <div className="flex items-center justify-between pb-3 border-b border-cream-100 mb-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-cream-100 mb-2">
                     <div className="flex items-center gap-2">
                       <span className="font-display font-semibold text-ink-800 text-base">
                         {dayName}
@@ -500,7 +430,7 @@ export function MealsPage({
                       {dayMeals.map((meal) => (
                         <div
                           key={meal.id}
-                          className="p-3 rounded-xl border border-cream-200 bg-cream-50/40 flex items-start justify-between gap-2 group"
+                          className="p-2.5 rounded-lg bg-cream-50/60 flex items-start justify-between gap-2 group"
                         >
                           <div className="min-w-0">
                             <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sage-100 text-sage-700 mb-1">
@@ -553,13 +483,13 @@ export function MealsPage({
               {library.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white rounded-2xl border border-cream-200 p-4 flex items-start justify-between gap-3"
+                  className="bg-white rounded-xl border border-cream-200 px-3 py-2.5 flex items-center justify-between gap-2"
                 >
                   <div className="min-w-0">
                     <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-cream-100 text-ink-600">
                       {item.meal_type}
                     </span>
-                    <p className="text-sm font-semibold text-ink-800 mt-1">{item.name}</p>
+                    <p className="text-sm font-semibold text-ink-800">{item.name}</p>
                     {item.notes && <p className="text-xs text-ink-500 mt-0.5">{item.notes}</p>}
                     {item.default_cost > 0 && (
                       <p className="text-xs font-medium text-sage-700 mt-1">
@@ -755,6 +685,28 @@ export function MealsPage({
               onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
               autoFocus
             />
+            {library.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[...library]
+                  .sort((a, b) => Number(b.meal_type === newMeal.meal_type) - Number(a.meal_type === newMeal.meal_type))
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() =>
+                        setNewMeal({
+                          ...newMeal,
+                          name: item.name,
+                          cost: item.default_cost > 0 ? String(item.default_cost) : newMeal.cost,
+                        })
+                      }
+                      className="px-2.5 py-1 rounded-lg text-xs bg-cream-100 text-ink-700 hover:bg-cream-200 transition-colors"
+                    >
+                      {item.name}
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -784,34 +736,6 @@ export function MealsPage({
             <Button onClick={handleAddMeal} disabled={!newMeal.name.trim() || !isNonNegativeAmount(newMeal.cost)}>
               Add to Schedule
             </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Set Weekly Food Budget Modal */}
-      <Modal open={budgetModalOpen} onClose={() => setBudgetModalOpen(false)} title="Set Weekly Food Budget">
-        <div className="space-y-4">
-          <p className="text-xs text-ink-600 leading-relaxed">
-            Set your target weekly spending limit for food and groceries. Your weekly planner will automatically compare total planned meals against this budget.
-          </p>
-
-          <div>
-            <Label>Weekly Budget (KES)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={budgetInput}
-              onChange={(e) => setBudgetInput(e.target.value)}
-              placeholder="e.g. 5000"
-              autoFocus
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-cream-100">
-            <Button variant="secondary" onClick={() => setBudgetModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveBudget}>Save Budget</Button>
           </div>
         </div>
       </Modal>
