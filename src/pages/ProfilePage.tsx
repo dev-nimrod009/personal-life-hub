@@ -594,6 +594,9 @@ export function ProfilePage() {
                 <Button onClick={save} disabled={saving}>
                   {saving ? "Saving..." : "Save profile"}
                 </Button>
+                <Button variant="ghost" type="button" onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
                 {saved && (
                   <span className="text-xs text-sage-600 font-medium flex items-center gap-1">
                     <Check size={14} /> Saved

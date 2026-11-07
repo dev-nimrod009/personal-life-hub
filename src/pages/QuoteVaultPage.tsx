@@ -114,9 +114,17 @@ export function QuoteVaultPage() {
             <p className="font-display text-xl sm:text-2xl md:text-3xl font-normal leading-relaxed italic">
               "{featured.text}"
             </p>
-            <p className="mt-4 text-sm text-sage-200 font-medium tracking-wide">
-              — {featured.author || "Unknown"}
-            </p>
+            <div className="mt-4 pt-3 border-t border-sage-600/50 flex items-center justify-between">
+              <p className="text-sm text-sage-200 font-medium tracking-wide">
+                — {featured.author || "Unknown"}
+              </p>
+              <button
+                onClick={() => openEdit(featured)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sage-600 hover:bg-sage-500 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
+                <Pencil size={13} /> Edit Quote
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -162,21 +170,24 @@ export function QuoteVaultPage() {
                   <span className="text-[11px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-cream-100 text-ink-600">
                     {q.kind || "Wisdom"}
                   </span>
-                  <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => openEdit(q)}
-                    className="opacity-0 group-hover:opacity-100 text-ink-400 hover:text-ink-700 transition-opacity p-1"
-                    title="Edit quote"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    onClick={() => void remove(q.id)}
-                    className="opacity-0 group-hover:opacity-100 text-ink-400 hover:text-rose-soft-600 transition-opacity p-1"
-                    title="Delete quote"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => openEdit(q)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-cream-100 hover:bg-cream-200 text-ink-700 transition-colors cursor-pointer"
+                      title="Edit quote"
+                      aria-label="Edit quote"
+                    >
+                      <Pencil size={12} className="text-sage-600" />
+                      <span className="text-[11px] font-semibold">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => void remove(q.id)}
+                      className="p-1.5 rounded-lg text-ink-400 hover:text-rose-soft-600 hover:bg-rose-soft-50 transition-colors cursor-pointer"
+                      title="Delete quote"
+                      aria-label="Delete quote"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </div>
 

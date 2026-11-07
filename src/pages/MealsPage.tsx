@@ -268,7 +268,7 @@ export function MealsPage({
         title="Meal Planner"
         subtitle="Plan your weekly meals, estimate food costs in KES, and stay within your target budget."
         action={
-          activeTab === "week" ? null : activeTab === "library" ? (
+          activeTab === "library" ? (
             <Button onClick={() => setLibraryModal(true)}>
               <Plus size={16} /> Add to Library
             </Button>
@@ -280,18 +280,18 @@ export function MealsPage({
             <Button onClick={() => setPantryModal(true)}>
               <Plus size={16} /> Add Item
             </Button>
-          ) : (
+          ) : activeTab === "shopping" ? (
             <Button onClick={() => setShoppingModal(true)}>
               <Plus size={16} /> Add Grocery Item
             </Button>
-          )
+          ) : undefined
         }
       />
 
       {error && <div className="mb-4 rounded-xl bg-rose-soft-100 text-rose-soft-600 text-sm px-4 py-3">{error}</div>}
 
       {/* Tabs */}
-      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-6 scrollbar-hide border-b border-cream-200">
+      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide border-b border-cream-200">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -299,13 +299,13 @@ export function MealsPage({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                 isActive
                   ? "bg-sage-600 text-white shadow-xs"
                   : "bg-white text-ink-600 hover:bg-cream-100 border border-cream-200"
               }`}
             >
-              <Icon size={16} />
+              <Icon size={15} />
               {tab.label}
             </button>
           );
@@ -320,40 +320,52 @@ export function MealsPage({
         </div>
       ) : activeTab === "week" ? (
         /* Weekly Planner View */
-        <div className="space-y-6">
-          {/* Weekly Food Budget Usage */}
-          <section className="bg-white rounded-2xl border border-cream-200 p-4">
-            <div className="flex items-center justify-between text-xs mb-2">
-              <span className="text-ink-600">Food budget this week</span>
-              <span className={cn("font-semibold", isOverBudget ? "text-rose-soft-600" : "text-ink-700")}>
-                KES {totalWeekSpent.toLocaleString()} of KES {weeklyBudget.toLocaleString()}
+        <div className="space-y-3">
+          {/* Top Budget Summary Cards */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="bg-white rounded-2xl border border-cream-200 p-3 flex flex-col justify-between shadow-2xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Target Budget</span>
+              <p className="font-display text-lg font-bold text-ink-800 mt-0.5">
+                KES {weeklyBudget.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-cream-200 p-3 flex flex-col justify-between shadow-2xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Planned Spent</span>
+              <p className={cn("font-display text-lg font-bold mt-0.5", isOverBudget ? "text-rose-soft-600" : "text-sage-700")}>
+                KES {totalWeekSpent.toLocaleString()}
+              </p>
+              <span className="text-[10px] text-ink-400">
+                {isOverBudget ? "Over budget" : `${Math.round(usagePercent)}% used`}
               </span>
             </div>
-            <div className="h-2 rounded-full bg-cream-100 overflow-hidden">
-              <div
-                className={cn("h-full rounded-full transition-all duration-500", isOverBudget ? "bg-rose-soft-500" : "bg-sage-500")}
-                style={{ width: `${usagePercent}%` }}
-              />
-            </div>
-          </section>
+          </div>
+
+          {/* Slim Progress Bar */}
+          <div className="h-1.5 rounded-full bg-cream-100 overflow-hidden">
+            <div
+              className={cn("h-full rounded-full transition-all duration-500", isOverBudget ? "bg-rose-soft-500" : "bg-sage-500")}
+              style={{ width: `${usagePercent}%` }}
+            />
+          </div>
 
           {/* Week Selector Bar */}
-          <div className="flex items-center justify-between bg-white border border-cream-200 rounded-2xl px-4 py-3 shadow-xs">
+          <div className="flex items-center justify-between bg-white border border-cream-200 rounded-2xl px-3 py-1.5 shadow-2xs">
             <button
               onClick={() => shiftWeek(-1)}
-              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
+              className="p-1 rounded-lg text-ink-600 hover:bg-cream-100 transition-colors"
               aria-label="Previous week"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </button>
 
             <div className="text-center">
-              <p className="font-display text-base sm:text-lg font-semibold text-ink-800">
+              <p className="font-display text-xs sm:text-sm font-semibold text-ink-800">
                 {weekDays[0].formatted} – {weekDays[6].formatted}
               </p>
               <button
                 onClick={jumpToCurrentWeek}
-                className="text-[11px] text-sage-600 hover:underline font-medium mt-0.5"
+                className="text-[10px] text-sage-600 hover:underline font-medium block mx-auto leading-none mt-0.5"
               >
                 Jump to Current Week
               </button>
@@ -361,86 +373,138 @@ export function MealsPage({
 
             <button
               onClick={() => shiftWeek(1)}
-              className="p-2 rounded-xl text-ink-600 hover:bg-cream-100 transition-colors"
+              className="p-1 rounded-lg text-ink-600 hover:bg-cream-100 transition-colors"
               aria-label="Next week"
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={16} />
             </button>
           </div>
 
-          {/* 7-Day Planner Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          {/* Upcoming Week's Meals: 4-Column Compact Eye-Level Grid (Matches Screenshot) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {weekDays.map(({ dateStr, dayName, formatted }) => {
               const dayMeals = currentWeekMeals.filter((m) => m.meal_date === dateStr);
+              const dayTotal = dayMeals.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
               const isToday = dateStr === todayISO();
 
               return (
                 <div
                   key={dateStr}
                   className={cn(
-                    "bg-white rounded-xl border p-2 flex flex-col transition-all",
-                    isToday ? "border-sage-300 ring-1 ring-sage-200" : "border-cream-200"
+                    "bg-white rounded-2xl border p-2.5 flex flex-col justify-between transition-all hover:border-sage-300 min-h-[120px]",
+                    isToday ? "border-sage-500 bg-sage-50/40 ring-1 ring-sage-400/80 shadow-2xs" : "border-cream-200"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-1 mb-1.5">
-                    <div className="min-w-0">
-                      <p className="font-display font-semibold text-sm text-ink-800 leading-tight">
-                        {dayName.slice(0, 3)}
-                        {isToday && <span className="ml-1 text-[10px] font-medium text-sage-600">Today</span>}
-                      </p>
-                      <p className="text-[11px] text-ink-400">{formatted}</p>
+                  <div>
+                    {/* Day Header */}
+                    <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-cream-100">
+                      <div className="flex items-center gap-1">
+                        <span className="font-display font-bold text-xs uppercase tracking-wider text-ink-700">
+                          {dayName.slice(0, 3)}
+                        </span>
+                        <span className="text-[10px] text-ink-400 font-medium">
+                          {formatted.split(" ")[1] || formatted}
+                        </span>
+                        {isToday && (
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-sage-700 bg-sage-100 px-1 py-0.2 rounded">
+                            Today
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setNewMeal({ meal_date: dateStr, meal_type: "Lunch", name: "", notes: "", cost: "" });
+                          setMealModal(true);
+                        }}
+                        className="text-[10px] font-semibold text-sage-700 hover:text-sage-800 p-0.5 hover:bg-sage-100 rounded"
+                        title={`Add meal to ${dayName}`}
+                      >
+                        <Plus size={13} />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewMeal({ meal_date: dateStr, meal_type: "Lunch", name: "", notes: "", cost: "" });
-                        setMealModal(true);
-                      }}
-                      className="w-7 h-7 shrink-0 rounded-lg bg-sage-600 text-white flex items-center justify-center hover:bg-sage-700 transition-colors"
-                      aria-label="Add meal"
-                    >
-                      <Plus size={14} />
-                    </button>
+
+                    {/* Day Meals */}
+                    {dayMeals.length === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewMeal({ meal_date: dateStr, meal_type: "Lunch", name: "", notes: "", cost: "" });
+                          setMealModal(true);
+                        }}
+                        className="w-full py-2.5 rounded-xl border border-dashed border-cream-200 text-[11px] text-ink-400 hover:text-sage-700 hover:border-sage-300 hover:bg-cream-50/50 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Plus size={11} /> Add meal
+                      </button>
+                    ) : (
+                      <div className="space-y-1">
+                        {dayMeals.map((meal) => (
+                          <div
+                            key={meal.id}
+                            className="p-1.5 rounded-xl bg-white border border-cream-100/90 shadow-2xs flex items-center justify-between gap-1 group"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <span className="inline-block text-[8px] font-bold uppercase tracking-wider px-1 py-0.2 rounded bg-sage-100 text-sage-700 leading-tight">
+                                {meal.meal_type}
+                              </span>
+                              <p className="text-[11px] font-semibold text-ink-800 truncate leading-snug">
+                                {meal.name}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              {meal.cost ? (
+                                <span className="text-[10px] font-bold text-ink-700">
+                                  KES {Number(meal.cost).toLocaleString()}
+                                </span>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await deleteMeal(meal.id);
+                                    await loadAll();
+                                  } catch {
+                                    setError("Could not delete meal.");
+                                  }
+                                }}
+                                className="text-ink-400 hover:text-rose-soft-600 p-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                                title="Delete meal"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {dayMeals.length === 0 ? (
-                    <p className="text-[11px] text-ink-400">No meals</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {dayMeals.map((meal) => (
-                        <div
-                          key={meal.id}
-                          className="flex items-center justify-between gap-1 rounded-md bg-cream-50 px-1.5 py-1 group"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-ink-800 truncate">{meal.name}</p>
-                            <p className="text-[10px] text-ink-500">
-                              {meal.meal_type} · KES {(Number(meal.cost) || 0).toLocaleString()}
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await deleteMeal(meal.id);
-                                await loadAll();
-                              } catch {
-                                setError("Could not delete meal.");
-                              }
-                            }}
-                            className="p-1 text-ink-400 hover:text-rose-soft-600 opacity-60 hover:opacity-100 transition-opacity"
-                            title="Delete meal"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
+                  {dayMeals.length > 0 && dayTotal > 0 && (
+                    <div className="pt-1 mt-1.5 border-t border-cream-100 flex justify-between items-center text-[10px]">
+                      <span className="text-ink-400 font-medium">Day Total</span>
+                      <span className="font-bold text-ink-800">KES {dayTotal.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
               );
             })}
+
+            {/* 8th Slot: Healthy Tip Card (Matches screenshot layout) */}
+            <div className="bg-cream-50/80 rounded-2xl border border-cream-200/70 p-2.5 flex flex-col justify-between items-center text-center min-h-[120px]">
+              <span className="text-2xl mt-1 select-none">🥗</span>
+              <div>
+                <p className="font-display font-semibold text-xs text-ink-800 leading-tight">
+                  Eat healthy. Stay healthy.
+                </p>
+                <p className="text-[10px] text-ink-500 mt-0.5 leading-snug">
+                  Plan your meals &amp; save weekly
+                </p>
+              </div>
+              <span className="text-[9px] font-semibold text-sage-700 bg-sage-50 px-2 py-0.5 rounded-full border border-sage-200/80">
+                Kenya Kitchen Tips
+              </span>
+            </div>
           </div>
         </div>
       ) : activeTab === "library" ? (
@@ -453,15 +517,18 @@ export function MealsPage({
               hint="Save your favorite go-to meals here to quickly schedule them into your week."
             />
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {library.map((item) => (
                 <div
                   key={item.id}
                   className="bg-white rounded-xl border border-cream-200 px-3 py-2.5 flex items-center justify-between gap-2"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink-800 truncate">{item.name}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-ink-500">{item.meal_type}</p>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-cream-100 text-ink-600">
+                      {item.meal_type}
+                    </span>
+                    <p className="text-sm font-semibold text-ink-800">{item.name}</p>
+                    {item.notes && <p className="text-xs text-ink-500 mt-0.5">{item.notes}</p>}
                     {item.default_cost > 0 && (
                       <p className="text-xs font-medium text-sage-700 mt-1">
                         Est. KES {item.default_cost.toLocaleString()}
